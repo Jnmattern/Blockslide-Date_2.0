@@ -187,7 +187,6 @@ void animateDigits(struct Animation *anim, const uint32_t normTime) {
 }
 
 void handle_tick(struct tm *now, TimeUnits units_changed) {
-	time_t curTime;
 	int h, m;
     int D, M;
     int i;
@@ -202,10 +201,7 @@ void handle_tick(struct tm *now, TimeUnits units_changed) {
     if (splashEnded) {
         if (animation_is_scheduled(anim))
             animation_unschedule(anim);
-        
-		curTime = time(NULL);
-		now = localtime(&curTime);
-        
+                
         h = now->tm_hour;
         m = now->tm_min;
         D = now->tm_mday;
@@ -268,9 +264,13 @@ void handle_tick(struct tm *now, TimeUnits units_changed) {
 }
 
 void handle_timer(void *data) {
-	//APP_LOG(APP_LOG_LEVEL_DEBUG, "Entering handle_timer");
+	time_t curTime;
+	struct tm *now;
+	
     splashEnded = true;
-    handle_tick(NULL, 0);
+	curTime = time(NULL);
+	now = localtime(&curTime);
+    handle_tick(now, 0);
 }
 
 void handle_init() {
