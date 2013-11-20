@@ -2,10 +2,6 @@
 
 #include "Blockslide-Date_2.0.h"
 
-
-#define TRUE  1
-#define FALSE 0
-
 // Languages
 #define LANG_DUTCH 0
 #define LANG_ENGLISH 1
@@ -13,11 +9,12 @@
 #define LANG_GERMAN 3
 #define LANG_SPANISH 4
 #define LANG_MAX 5
-// Language for the day of the week
-#define LANG_CUR LANG_SPANISH
 
-#define USDATE FALSE
-#define WEEKDAY TRUE
+enum {
+	CONFIG_KEY_DATEORDER = 0,
+	CONFIG_KEY_WEEKDAY = 1,
+	CONFIG_KEY_LANG = 2
+};
 
 
 #define TILEW 22
@@ -35,19 +32,17 @@
 #define CY 84
 #define NUMSLOTS 10
 
-#if LANG_CUR == LANG_DUTCH
-const char weekDay[7][3] = { "ZO", "MA", "DI", "WO", "DO", "VR", "ZA" };	// Dutch
-#elif LANG_CUR == LANG_ENGLISH
-const char weekDay[7][3] = { "SU", "MO", "TU", "WE", "TH", "FR", "SA" };	// English
-#elif LANG_CUR == LANG_FRENCH
-const char weekDay[7][3] = { "DI", "LU", "MA", "ME", "JE", "VE", "SA" };	// French
-#elif LANG_CUR == LANG_GERMAN
-const char weekDay[7][3] = { "SO", "MO", "DI", "MI", "DO", "FR", "SA" };	// German
-#elif LANG_CUR == LANG_SPANISH
-const char weekDay[7][3] = { "DO", "LU", "MA", "MI", "JU", "VI", "SA" };	// Spanish
-#else // Fallback to English
-const char weekDay[7][3] = { "SU", "MO", "TU", "WE", "TH", "FR", "SA" };	// English
-#endif
+char weekDay[LANG_MAX][7][3] = {
+	{ "ZO", "MA", "DI", "WO", "DO", "VR", "ZA" },	// Dutch
+	{ "SU", "MO", "TU", "WE", "TH", "FR", "SA" },	// English
+	{ "DI", "LU", "MA", "ME", "JE", "VE", "SA" },	// French
+	{ "SO", "MO", "DI", "MI", "DO", "FR", "SA" },	// German
+	{ "DO", "LU", "MA", "MI", "JU", "VI", "SA" }		// Spanish
+};
+
+int curLang = LANG_ENGLISH;
+int showWeekday = 0;
+int USDate = 1;
 
 typedef struct {
 	Layer *layer;
@@ -190,11 +185,8 @@ void handle_tick(struct tm *now, TimeUnits units_changed) {
 	int h, m;
     int D, M;
     int i;
-#if WEEKDAY
     int wd;
-#else
     int Y;
-#endif
 	
 	//APP_LOG(APP_LOG_LEVEL_DEBUG, "Entering handle_tick");
 
@@ -206,11 +198,12 @@ void handle_tick(struct tm *now, TimeUnits units_changed) {
         m = now->tm_min;
         D = now->tm_mday;
         M = now->tm_mon+1;
-#if WEEKDAY
-		wd = now->tm_wday;
-#else
-        Y = now->tm_year%100;
-#endif
+		
+		if (showWeekday) {
+			wd = now->tm_wday;
+		} else {
+			Y = now->tm_year%100;
+		}
         
         if (clock_12) {
             h = h%12;
@@ -230,35 +223,36 @@ void handle_tick(struct tm *now, TimeUnits units_changed) {
         slot[3].curDigit = m%10;
         
         // Date slots
-#if WEEKDAY && USDATE
-        slot[4].curDigit = weekDay[wd][0] - '0';
-        slot[5].curDigit = weekDay[wd][1] - '0';
-        slot[6].curDigit = M/10;
-        slot[7].curDigit = M%10;
-        slot[8].curDigit = D/10;
-        slot[9].curDigit = D%10;
-#elif WEEKDAY && !USDATE
-        slot[4].curDigit = weekDay[wd][0] - '0';
-        slot[5].curDigit = weekDay[wd][1] - '0';
-        slot[6].curDigit = D/10;
-        slot[7].curDigit = D%10;
-        slot[8].curDigit = M/10;
-        slot[9].curDigit = M%10;
-#elif !WEEKDAY && USDATE
-        slot[4].curDigit = M/10;
-        slot[5].curDigit = M%10;
-        slot[6].curDigit = D/10;
-        slot[7].curDigit = D%10;
-        slot[8].curDigit = Y/10;
-        slot[9].curDigit = Y%10;
-#else
-        slot[4].curDigit = D/10;
-        slot[5].curDigit = D%10;
-        slot[6].curDigit = M/10;
-        slot[7].curDigit = M%10;
-        slot[8].curDigit = Y/10;
-        slot[9].curDigit = Y%10;
-#endif
+		if (showWeekday && USDate) {
+			slot[4].curDigit = weekDay[curLang][wd][0] - '0';
+			slot[5].curDigit = weekDay[curLang][wd][1] - '0';
+			slot[6].curDigit = M/10;
+			slot[7].curDigit = M%10;
+			slot[8].curDigit = D/10;
+			slot[9].curDigit = D%10;
+		} else if (showWeekday && !USDate) {
+			slot[4].curDigit = weekDay[curLang][wd][0] - '0';
+			slot[5].curDigit = weekDay[curLang][wd][1] - '0';
+			slot[6].curDigit = D/10;
+			slot[7].curDigit = D%10;
+			slot[8].curDigit = M/10;
+			slot[9].curDigit = M%10;
+		} else if (!showWeekday && USDate) {
+			slot[4].curDigit = M/10;
+			slot[5].curDigit = M%10;
+			slot[6].curDigit = D/10;
+			slot[7].curDigit = D%10;
+			slot[8].curDigit = Y/10;
+			slot[9].curDigit = Y%10;
+		} else {
+			slot[4].curDigit = D/10;
+			slot[5].curDigit = D%10;
+			slot[6].curDigit = M/10;
+			slot[7].curDigit = M%10;
+			slot[8].curDigit = Y/10;
+			slot[9].curDigit = Y%10;
+		}
+		
         animation_schedule(anim);
     }
 }
@@ -273,6 +267,58 @@ void handle_timer(void *data) {
     handle_tick(now, 0);
 }
 
+void applyConfig() {
+	handle_timer(NULL);
+}
+
+void in_dropped_handler(AppMessageResult reason, void *context) {
+}
+
+void in_received_handler(DictionaryIterator *received, void *context) {
+	Tuple *dateorder = dict_find(received, CONFIG_KEY_DATEORDER);
+	Tuple *weekday = dict_find(received, CONFIG_KEY_WEEKDAY);
+	Tuple *lang = dict_find(received, CONFIG_KEY_LANG);
+	
+	if (dateorder && weekday && lang) {
+		persist_write_int(CONFIG_KEY_DATEORDER, dateorder->value->int32);
+		persist_write_int(CONFIG_KEY_WEEKDAY, weekday->value->int32);
+		persist_write_int(CONFIG_KEY_LANG, lang->value->int32);
+		
+		USDate = dateorder->value->int32;
+		showWeekday = weekday->value->int32;
+		curLang = lang->value->int32;
+		
+		applyConfig();
+	}
+}
+
+void readConfig() {
+	if (persist_exists(CONFIG_KEY_DATEORDER)) {
+		USDate = persist_read_int(CONFIG_KEY_DATEORDER);
+	} else {
+		USDate = 1;
+	}
+	
+	if (persist_exists(CONFIG_KEY_WEEKDAY)) {
+		showWeekday = persist_read_int(CONFIG_KEY_WEEKDAY);
+	} else {
+		showWeekday = 0;
+	}
+	
+	if (persist_exists(CONFIG_KEY_LANG)) {
+		curLang = persist_read_int(CONFIG_KEY_LANG);
+	} else {
+		curLang = LANG_ENGLISH;
+	}
+}
+
+static void app_message_init(void) {
+	app_message_register_inbox_received(in_received_handler);
+	app_message_register_inbox_dropped(in_dropped_handler);
+	app_message_open(64, 64);
+}
+
+
 void handle_init() {
 	Layer *rootLayer;
 	int i;
@@ -281,6 +327,9 @@ void handle_init() {
 	window_stack_push(window, true);
 	window_set_background_color(window, GColorBlack);
 	
+	app_message_init();
+	readConfig();
+
 	rootLayer = window_get_root_layer(window);
 	
 	for (i=0; i<NUMSLOTS; i++) {
