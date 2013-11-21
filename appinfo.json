@@ -10,9 +10,9 @@
   },
   "capabilities": [ "configurable" ],
   "appKeys": {
-    "dateorder":	0,
-	"weekday":		1,
-	"lang":			2
+    "dateorder":	10,
+    "weekday":		11,
+    "lang":			12
   },
   "resources": {
     "media": [
