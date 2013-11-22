@@ -276,27 +276,37 @@ void applyConfig() {
 	}
 }
 
+bool checkAndSaveInt(int *var, int val, int key) {
+	if (*var != val) {
+		*var = val;
+		persist_write_int(key, val);
+		return true;
+	} else {
+		return false;
+	}
+}
+
 void in_dropped_handler(AppMessageResult reason, void *context) {
 }
 
 void in_received_handler(DictionaryIterator *received, void *context) {
+	bool somethingChanged = false;
+	
 	Tuple *dateorder = dict_find(received, CONFIG_KEY_DATEORDER);
 	Tuple *weekday = dict_find(received, CONFIG_KEY_WEEKDAY);
 	Tuple *lang = dict_find(received, CONFIG_KEY_LANG);
 	
 	if (dateorder && weekday && lang) {
-		persist_write_int(CONFIG_KEY_DATEORDER, dateorder->value->int32);
-		persist_write_int(CONFIG_KEY_WEEKDAY, weekday->value->int32);
-		persist_write_int(CONFIG_KEY_LANG, lang->value->int32);
-		
-		USDate = dateorder->value->int32;
-		showWeekday = weekday->value->int32;
-		curLang = lang->value->int32;
+		somethingChanged |= checkAndSaveInt(&USDate, dateorder->value->int32, CONFIG_KEY_DATEORDER);
+		somethingChanged |= checkAndSaveInt(&showWeekday, weekday->value->int32, CONFIG_KEY_WEEKDAY);
+		somethingChanged |= checkAndSaveInt(&curLang, lang->value->int32, CONFIG_KEY_LANG);
 		
 		snprintf(buffer, 256, "Received config (dateorder=%d, weekday=%d, lang=%d)", USDate, showWeekday, curLang);
 		APP_LOG(APP_LOG_LEVEL_DEBUG, buffer);
 		
-		applyConfig();
+		if (somethingChanged) {
+			applyConfig();
+		}
 	}
 }
 
