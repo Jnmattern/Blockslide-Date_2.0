@@ -76,6 +76,8 @@ bool splashEnded = false;
 AnimationImplementation animImpl;
 Animation *anim;
 
+char buffer[256] = "";
+
 GRect slotFrame(int i) {
 	int x, y;
 	int w = slot[i].tileWidth*3;
@@ -269,7 +271,9 @@ void handle_timer(void *data) {
 }
 
 void applyConfig() {
-	handle_timer(NULL);
+	if (splashEnded) {
+		handle_timer(NULL);
+	}
 }
 
 void in_dropped_handler(AppMessageResult reason, void *context) {
@@ -288,6 +292,9 @@ void in_received_handler(DictionaryIterator *received, void *context) {
 		USDate = dateorder->value->int32;
 		showWeekday = weekday->value->int32;
 		curLang = lang->value->int32;
+		
+		snprintf(buffer, 256, "Received config (dateorder=%d, weekday=%d, lang=%d)", USDate, showWeekday, curLang);
+		APP_LOG(APP_LOG_LEVEL_DEBUG, buffer);
 		
 		applyConfig();
 	}

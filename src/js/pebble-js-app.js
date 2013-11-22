@@ -18,6 +18,9 @@ Pebble.addEventListener("ready", function() {
 	console.log("	dateorder: " + dateorder);
 	console.log("	weekday: " + weekday);
 	console.log("	lang: " + lang);
+
+	
+	Pebble.sendAppMessage(JSON.parse('{"dateorder":'+dateorder+',"weekday":'+weekday+',"lang":'+lang+'}'));
 });
 
 Pebble.addEventListener("showConfiguration", function(e) {
