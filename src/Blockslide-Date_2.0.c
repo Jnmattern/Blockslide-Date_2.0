@@ -27,11 +27,12 @@ enum {
 #define VSPACE 8
 #define DIGIT_CHANGE_ANIM_DURATION 800
 #define STARTDELAY 1500
+#define BATTERYDELAY 5000
 #define SCREENW 144
 #define SCREENH 168
 #define CX 72
 #define CY 84
-#define NUMSLOTS 10
+#define NUMSLOTS 12
 
 char weekDay[LANG_MAX][7][3] = {
 	{ "ZO", "MA", "DI", "WO", "DO", "VR", "ZA" },	// Dutch
@@ -63,15 +64,18 @@ int startDigit[NUMSLOTS] = {
 	'O'-'0',
 	'C'-'0',
 	'K'-'0',
+	SPACE,
 	'S'-'0',
 	'L'-'0',
 	'I'-'0',
 	'D'-'0',
-	'E'-'0'
+	'E'-'0',
+	SPACE
 };
 
 bool clock_12 = false;
 bool splashEnded = false;
+bool showBattery = false;
 
 AnimationImplementation animImpl;
 Animation *anim;
@@ -98,7 +102,8 @@ GRect slotFrame(int i) {
 		}
 	} else {
 		// Date slot -> small digits
-		x = CX + (i-7)*(w+DHSPACE) + DHSPACE/2 - ((i<6)?16:0) + ((i>7)?16:0);
+		//x = CX + (i-7)*(w+DHSPACE) + DHSPACE/2 - ((i<6)?16:0) + ((i>7)?16:0);
+		x = 5 + (i-4)*2 + (i-4)*w;
 		y = SCREENH - h - VSPACE/2;
 	}
 	
@@ -224,36 +229,39 @@ void handle_tick(struct tm *now, TimeUnits units_changed) {
         slot[1].curDigit = h%10;
         slot[2].curDigit = m/10;
         slot[3].curDigit = m%10;
+        slot[6].curDigit = SPACE;
+        slot[9].curDigit = SPACE;
+		
         
         // Date slots
 		if (showWeekday && USDate) {
 			slot[4].curDigit = weekDay[curLang][wd][0] - '0';
 			slot[5].curDigit = weekDay[curLang][wd][1] - '0';
-			slot[6].curDigit = M/10;
-			slot[7].curDigit = M%10;
-			slot[8].curDigit = D/10;
-			slot[9].curDigit = D%10;
+			slot[7].curDigit = M/10;
+			slot[8].curDigit = M%10;
+			slot[10].curDigit = D/10;
+			slot[11].curDigit = D%10;
 		} else if (showWeekday && !USDate) {
 			slot[4].curDigit = weekDay[curLang][wd][0] - '0';
 			slot[5].curDigit = weekDay[curLang][wd][1] - '0';
-			slot[6].curDigit = D/10;
-			slot[7].curDigit = D%10;
-			slot[8].curDigit = M/10;
-			slot[9].curDigit = M%10;
+			slot[7].curDigit = D/10;
+			slot[8].curDigit = D%10;
+			slot[10].curDigit = M/10;
+			slot[11].curDigit = M%10;
 		} else if (!showWeekday && USDate) {
 			slot[4].curDigit = M/10;
 			slot[5].curDigit = M%10;
-			slot[6].curDigit = D/10;
-			slot[7].curDigit = D%10;
-			slot[8].curDigit = Y/10;
-			slot[9].curDigit = Y%10;
+			slot[7].curDigit = D/10;
+			slot[8].curDigit = D%10;
+			slot[10].curDigit = Y/10;
+			slot[11].curDigit = Y%10;
 		} else {
 			slot[4].curDigit = D/10;
 			slot[5].curDigit = D%10;
-			slot[6].curDigit = M/10;
-			slot[7].curDigit = M%10;
-			slot[8].curDigit = Y/10;
-			slot[9].curDigit = Y%10;
+			slot[7].curDigit = M/10;
+			slot[8].curDigit = M%10;
+			slot[10].curDigit = Y/10;
+			slot[11].curDigit = Y%10;
 		}
 		
         animation_schedule(anim);
@@ -268,6 +276,48 @@ void handle_timer(void *data) {
 	curTime = time(NULL);
 	now = localtime(&curTime);
     handle_tick(now, 0);
+}
+
+void handle_tap(AccelAxisType axis, int32_t direction) {
+	static BatteryChargeState chargeState;
+	int i, s;
+	
+    if (splashEnded) {
+		if (animation_is_scheduled(anim)) {
+			animation_unschedule(anim);
+		}
+		
+		for (i=0; i<NUMSLOTS; i++) {
+            slot[i].prevDigit = slot[i].curDigit;
+        }
+        
+        chargeState = battery_state_service_peek();
+        s = chargeState.charge_percent / 10;
+                
+        if (s<1) {
+			s = 1;
+		} else if (s>9) {
+			s = 9;
+		}
+		
+		s--;
+		
+		for (i=0; i<4; i++) {
+			slot[i].curDigit = BATTERYOFFSET + 4*s + i;
+		}
+		
+		slot[4].curDigit = 'B' - '0';
+		slot[5].curDigit = 'A' - '0';
+		slot[6].curDigit = 'T' - '0';
+		slot[7].curDigit = 'T' - '0';
+		slot[8].curDigit = ':' - '0';
+		slot[9].curDigit = s+1;
+		slot[10].curDigit = 0;
+		slot[11].curDigit = PERCENT;
+		
+        animation_schedule(anim);
+       	app_timer_register(BATTERYDELAY, handle_timer, NULL);
+	}
 }
 
 void applyConfig() {
@@ -368,11 +418,14 @@ void handle_init() {
 	app_timer_register(STARTDELAY, handle_timer, NULL);
 
 	tick_timer_service_subscribe(MINUTE_UNIT, handle_tick);
+	
+	accel_tap_service_subscribe(handle_tap);
 }
 
 void handle_deinit() {
 	int i;
 	
+	accel_tap_service_unsubscribe();
 	tick_timer_service_unsubscribe();
 	
 	for (i=0; i<NUMSLOTS; i++) {
