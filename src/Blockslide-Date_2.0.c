@@ -59,18 +59,18 @@ Window *window;
 
 digitSlot slot[NUMSLOTS]; // 4 big digits for the hour, 6 small for the date
 int startDigit[NUMSLOTS] = {
+	SPACE_L,
+	SPACE_R,
+	SPACE_L,
+	SPACE_R,
+	SPACE_L,
 	'B'-'0',
 	'L'-'0',
-	'O'-'0',
-	'C'-'0',
 	'K'-'0',
-	SPACE,
 	'S'-'0',
 	'L'-'0',
-	'I'-'0',
 	'D'-'0',
-	'E'-'0',
-	SPACE
+	SPACE_R
 };
 
 bool clock_12 = false;
@@ -229,8 +229,8 @@ void handle_tick(struct tm *now, TimeUnits units_changed) {
         slot[1].curDigit = h%10;
         slot[2].curDigit = m/10;
         slot[3].curDigit = m%10;
-        slot[6].curDigit = SPACE;
-        slot[9].curDigit = SPACE;
+        slot[6].curDigit = SPACE_L;
+        slot[9].curDigit = SPACE_R;
 		
         
         // Date slots
@@ -310,7 +310,7 @@ void handle_tap(AccelAxisType axis, int32_t direction) {
 		slot[5].curDigit = 'A' - '0';
 		slot[6].curDigit = 'T' - '0';
 		slot[7].curDigit = 'T' - '0';
-		slot[8].curDigit = ':' - '0';
+		slot[8].curDigit = SPACE_D;
 		slot[9].curDigit = s+1;
 		slot[10].curDigit = 0;
 		slot[11].curDigit = PERCENT;
@@ -392,8 +392,8 @@ void handle_init() {
 	int i;
 	
 	window = window_create();
-	window_stack_push(window, true);
 	window_set_background_color(window, GColorBlack);
+	window_stack_push(window, true);
 	
 	app_message_init();
 	readConfig();
