@@ -286,33 +286,21 @@ void handle_tap(AccelAxisType axis, int32_t direction) {
 		if (animation_is_scheduled(anim)) {
 			animation_unschedule(anim);
 		}
-		
-		for (i=0; i<NUMSLOTS; i++) {
+
+        chargeState = battery_state_service_peek();
+        s = chargeState.charge_percent;
+                
+		for (i=4; i<NUMSLOTS; i++) {
             slot[i].prevDigit = slot[i].curDigit;
         }
-        
-        chargeState = battery_state_service_peek();
-        s = chargeState.charge_percent / 10;
-                
-        if (s<1) {
-			s = 1;
-		} else if (s>9) {
-			s = 9;
-		}
-		
-		s--;
-		
-		for (i=0; i<4; i++) {
-			slot[i].curDigit = BATTERYOFFSET + 4*s + i;
-		}
-		
+
 		slot[4].curDigit = 'B' - '0';
 		slot[5].curDigit = 'A' - '0';
 		slot[6].curDigit = 'T' - '0';
-		slot[7].curDigit = 'T' - '0';
-		slot[8].curDigit = SPACE_D;
-		slot[9].curDigit = s+1;
-		slot[10].curDigit = 0;
+		slot[7].curDigit = SPACE_D;
+		slot[8].curDigit = (s==100)?1:SPACE_L;
+		slot[9].curDigit = (s<100)?s/10:0;
+		slot[10].curDigit = s/100;
 		slot[11].curDigit = PERCENT;
 		
         animation_schedule(anim);
@@ -327,9 +315,15 @@ void applyConfig() {
 }
 
 bool checkAndSaveInt(int *var, int val, int key) {
+	int ret;
+	
 	if (*var != val) {
 		*var = val;
-		persist_write_int(key, val);
+		ret = persist_write_int(key, val);
+		if (ret < 0) {
+			APP_LOG(APP_LOG_LEVEL_DEBUG, "checkAndSaveInt() : persist_write_int(%d, %d) returned %d",
+					val, key, ret);
+		}
 		return true;
 	} else {
 		return false;
@@ -347,13 +341,13 @@ void in_received_handler(DictionaryIterator *received, void *context) {
 	Tuple *lang = dict_find(received, CONFIG_KEY_LANG);
 	
 	if (dateorder && weekday && lang) {
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Received config (dateorder=%d, weekday=%d, lang=%d)",
+				(int)dateorder->value->int32, (int)weekday->value->int32, (int)lang->value->int32);
+		
 		somethingChanged |= checkAndSaveInt(&USDate, dateorder->value->int32, CONFIG_KEY_DATEORDER);
 		somethingChanged |= checkAndSaveInt(&showWeekday, weekday->value->int32, CONFIG_KEY_WEEKDAY);
 		somethingChanged |= checkAndSaveInt(&curLang, lang->value->int32, CONFIG_KEY_LANG);
-		
-		snprintf(buffer, 256, "Received config (dateorder=%d, weekday=%d, lang=%d)", USDate, showWeekday, curLang);
-		APP_LOG(APP_LOG_LEVEL_DEBUG, buffer);
-		
+				
 		if (somethingChanged) {
 			applyConfig();
 		}
@@ -365,19 +359,25 @@ void readConfig() {
 		USDate = persist_read_int(CONFIG_KEY_DATEORDER);
 	} else {
 		USDate = 1;
+		persist_write_int(CONFIG_KEY_DATEORDER, USDate);
 	}
 	
 	if (persist_exists(CONFIG_KEY_WEEKDAY)) {
 		showWeekday = persist_read_int(CONFIG_KEY_WEEKDAY);
 	} else {
 		showWeekday = 0;
+		persist_write_int(CONFIG_KEY_WEEKDAY, showWeekday);
 	}
 	
 	if (persist_exists(CONFIG_KEY_LANG)) {
 		curLang = persist_read_int(CONFIG_KEY_LANG);
 	} else {
 		curLang = LANG_ENGLISH;
+		persist_write_int(CONFIG_KEY_LANG, curLang);
 	}
+	
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "Stored config (dateorder=%d, weekday=%d, lang=%d)",
+			USDate, showWeekday, curLang);
 }
 
 static void app_message_init(void) {
@@ -395,8 +395,8 @@ void handle_init() {
 	window_set_background_color(window, GColorBlack);
 	window_stack_push(window, true);
 	
-	app_message_init();
 	readConfig();
+	app_message_init();
 
 	rootLayer = window_get_root_layer(window);
 	
