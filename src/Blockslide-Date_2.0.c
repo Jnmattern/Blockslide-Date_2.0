@@ -290,7 +290,7 @@ void handle_tap(AccelAxisType axis, int32_t direction) {
         chargeState = battery_state_service_peek();
         s = chargeState.charge_percent;
                 
-		for (i=4; i<NUMSLOTS; i++) {
+		for (i=0; i<NUMSLOTS; i++) {
             slot[i].prevDigit = slot[i].curDigit;
         }
 
