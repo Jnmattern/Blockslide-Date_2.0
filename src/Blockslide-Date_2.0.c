@@ -63,19 +63,18 @@ int startDigit[NUMSLOTS] = {
 	SPACE_R,
 	SPACE_L,
 	SPACE_R,
-	SPACE_L,
+	SPACE_D,
 	'B'-'0',
 	'L'-'0',
 	'K'-'0',
 	'S'-'0',
 	'L'-'0',
 	'D'-'0',
-	SPACE_R
+	SPACE_D
 };
 
-bool clock_12 = false;
 bool splashEnded = false;
-bool showBattery = false;
+bool animRunning = false;
 
 AnimationImplementation animImpl;
 Animation *anim;
@@ -187,21 +186,27 @@ void animateDigits(struct Animation *anim, const uint32_t normTime) {
 			layer_mark_dirty(slot[i].layer);
 		}
 	}
+	
+	if (normTime == ANIMATION_NORMALIZED_MAX) {
+		animRunning = false;
+	}
 }
 
 void handle_tick(struct tm *now, TimeUnits units_changed) {
 	int h, m;
     int D, M;
     int i;
-    int wd;
-    int Y;
+    int wd = 0;
+    int Y = 0;
 	
 	//APP_LOG(APP_LOG_LEVEL_DEBUG, "Entering handle_tick");
 
-    if (splashEnded) {
-        if (animation_is_scheduled(anim))
-            animation_unschedule(anim);
-                
+/*
+ if (splashEnded) {
+ if (animation_is_scheduled(anim))
+ animation_unschedule(anim);
+*/
+	if (splashEnded && !animation_is_scheduled(anim)) {
         h = now->tm_hour;
         m = now->tm_min;
         D = now->tm_mday;
@@ -213,7 +218,7 @@ void handle_tick(struct tm *now, TimeUnits units_changed) {
 			Y = now->tm_year%100;
 		}
         
-        if (clock_12) {
+        if (!clock_is_24h_style()) {
             h = h%12;
             if (h == 0) {
                 h = 12;
@@ -229,8 +234,8 @@ void handle_tick(struct tm *now, TimeUnits units_changed) {
         slot[1].curDigit = h%10;
         slot[2].curDigit = m/10;
         slot[3].curDigit = m%10;
-        slot[6].curDigit = SPACE_L;
-        slot[9].curDigit = SPACE_R;
+        slot[6].curDigit = SPACE_D;
+        slot[9].curDigit = SPACE_D;
 		
         
         // Date slots
@@ -282,12 +287,14 @@ void handle_tap(AccelAxisType axis, int32_t direction) {
 	static BatteryChargeState chargeState;
 	int i, s;
 	
-    if (splashEnded) {
+    if (splashEnded && !animRunning) {
 		if (animation_is_scheduled(anim)) {
 			animation_unschedule(anim);
 		}
 
-        chargeState = battery_state_service_peek();
+ 		animRunning = true;
+
+		chargeState = battery_state_service_peek();
         s = chargeState.charge_percent;
                 
 		for (i=0; i<NUMSLOTS; i++) {
@@ -298,10 +305,62 @@ void handle_tap(AccelAxisType axis, int32_t direction) {
 		slot[5].curDigit = 'A' - '0';
 		slot[6].curDigit = 'T' - '0';
 		slot[7].curDigit = SPACE_D;
-		slot[8].curDigit = (s==100)?1:SPACE_L;
+		slot[8].curDigit = (s==100)?1:SPACE_D;
 		slot[9].curDigit = (s<100)?s/10:0;
 		slot[10].curDigit = s/100;
 		slot[11].curDigit = PERCENT;
+		
+        animation_schedule(anim);
+       	app_timer_register(BATTERYDELAY, handle_timer, NULL);
+	}
+}
+
+void handle_bluetooth(bool connected) {
+	int i;
+	
+    if (splashEnded && !animRunning) {
+		if (animation_is_scheduled(anim)) {
+			animation_unschedule(anim);
+		}
+		
+		animRunning = true;
+		
+		for (i=0; i<NUMSLOTS; i++) {
+            slot[i].prevDigit = slot[i].curDigit;
+        }
+		
+		slot[0].curDigit = 'B' - '0';
+		slot[1].curDigit = 'T' - '0';
+		
+		if (connected) {
+			slot[2].curDigit = 'O' - '0';
+			slot[3].curDigit = 'K' - '0';
+
+			slot[4].curDigit  = SPACE_D;
+			slot[5].curDigit  = SPACE_D;
+			slot[6].curDigit  = SPACE_D;
+			slot[7].curDigit  = SPACE_D;
+			slot[8].curDigit  = SPACE_D;
+			slot[9].curDigit  = SPACE_D;
+			slot[10].curDigit = SPACE_D;
+			slot[11].curDigit = SPACE_D;
+
+			vibes_double_pulse();
+		} else {
+			slot[2].curDigit = SPACE_L;
+			slot[3].curDigit = SPACE_R;
+
+			slot[4].curDigit  = SPACE_D;
+			slot[5].curDigit  = 'F' - '0';
+			slot[6].curDigit  = 'A' - '0';
+			slot[7].curDigit  = 'I' - '0';
+			slot[8].curDigit  = 'L' - '0';
+			slot[9].curDigit  = 'E' - '0';
+			slot[10].curDigit = 'D' - '0';
+			slot[11].curDigit = SPACE_D;
+
+			vibes_long_pulse();
+		}
 		
         animation_schedule(anim);
        	app_timer_register(BATTERYDELAY, handle_timer, NULL);
@@ -403,9 +462,7 @@ void handle_init() {
 	for (i=0; i<NUMSLOTS; i++) {
 		initSlot(i, rootLayer);
 	}
-	
-	clock_12 = !clock_is_24h_style();
-	
+		
 	animImpl.setup = NULL;
 	animImpl.update = animateDigits;
 	animImpl.teardown = NULL;
@@ -420,11 +477,14 @@ void handle_init() {
 	tick_timer_service_subscribe(MINUTE_UNIT, handle_tick);
 	
 	accel_tap_service_subscribe(handle_tap);
+	
+	bluetooth_connection_service_subscribe(handle_bluetooth);
 }
 
 void handle_deinit() {
 	int i;
 	
+	bluetooth_connection_service_unsubscribe();
 	accel_tap_service_unsubscribe();
 	tick_timer_service_unsubscribe();
 	
