@@ -3,13 +3,14 @@
 #include "Blockslide-Date_2.0.h"
 
 // Languages
-#define LANG_DUTCH 0
-#define LANG_ENGLISH 1
-#define LANG_FRENCH 2
-#define LANG_GERMAN 3
-#define LANG_SPANISH 4
-#define LANG_PORTUGUESE 5
-#define LANG_MAX 6
+enum {
+	LANG_DUTCH =  0,
+	LANG_ENGLISH,
+	LANG_FRENCH,
+	LANG_GERMAN,
+	LANG_SPANISH,
+	LANG_MAX
+};
 
 enum {
 	CONFIG_KEY_DATEORDER = 10,
@@ -75,6 +76,7 @@ int startDigit[NUMSLOTS] = {
 
 bool splashEnded = false;
 bool animRunning = false;
+bool lastBluetoothStatus = true;
 
 AnimationImplementation animImpl;
 Animation *anim;
@@ -318,52 +320,58 @@ void handle_tap(AccelAxisType axis, int32_t direction) {
 void handle_bluetooth(bool connected) {
 	int i;
 	
-    if (splashEnded && !animRunning) {
-		if (animation_is_scheduled(anim)) {
-			animation_unschedule(anim);
+	if (lastBluetoothStatus == connected) {
+		return;
+	} else {
+		lastBluetoothStatus = connected;
+	
+		if (splashEnded && !animRunning) {
+			if (animation_is_scheduled(anim)) {
+				animation_unschedule(anim);
+			}
+			
+			animRunning = true;
+			
+			for (i=0; i<NUMSLOTS; i++) {
+				slot[i].prevDigit = slot[i].curDigit;
+			}
+			
+			slot[0].curDigit = 'B' - '0';
+			slot[1].curDigit = 'T' - '0';
+			
+			if (connected) {
+				slot[2].curDigit = 'O' - '0';
+				slot[3].curDigit = 'K' - '0';
+
+				slot[4].curDigit  = SPACE_D;
+				slot[5].curDigit  = SPACE_D;
+				slot[6].curDigit  = SPACE_D;
+				slot[7].curDigit  = SPACE_D;
+				slot[8].curDigit  = SPACE_D;
+				slot[9].curDigit  = SPACE_D;
+				slot[10].curDigit = SPACE_D;
+				slot[11].curDigit = SPACE_D;
+
+				vibes_double_pulse();
+			} else {
+				slot[2].curDigit = SPACE_L;
+				slot[3].curDigit = SPACE_R;
+
+				slot[4].curDigit  = SPACE_D;
+				slot[5].curDigit  = 'F' - '0';
+				slot[6].curDigit  = 'A' - '0';
+				slot[7].curDigit  = 'I' - '0';
+				slot[8].curDigit  = 'L' - '0';
+				slot[9].curDigit  = 'E' - '0';
+				slot[10].curDigit = 'D' - '0';
+				slot[11].curDigit = SPACE_D;
+
+				vibes_long_pulse();
+			}
+			
+			animation_schedule(anim);
+			app_timer_register(BATTERYDELAY, handle_timer, NULL);
 		}
-		
-		animRunning = true;
-		
-		for (i=0; i<NUMSLOTS; i++) {
-            slot[i].prevDigit = slot[i].curDigit;
-        }
-		
-		slot[0].curDigit = 'B' - '0';
-		slot[1].curDigit = 'T' - '0';
-		
-		if (connected) {
-			slot[2].curDigit = 'O' - '0';
-			slot[3].curDigit = 'K' - '0';
-
-			slot[4].curDigit  = SPACE_D;
-			slot[5].curDigit  = SPACE_D;
-			slot[6].curDigit  = SPACE_D;
-			slot[7].curDigit  = SPACE_D;
-			slot[8].curDigit  = SPACE_D;
-			slot[9].curDigit  = SPACE_D;
-			slot[10].curDigit = SPACE_D;
-			slot[11].curDigit = SPACE_D;
-
-			vibes_double_pulse();
-		} else {
-			slot[2].curDigit = SPACE_L;
-			slot[3].curDigit = SPACE_R;
-
-			slot[4].curDigit  = SPACE_D;
-			slot[5].curDigit  = 'F' - '0';
-			slot[6].curDigit  = 'A' - '0';
-			slot[7].curDigit  = 'I' - '0';
-			slot[8].curDigit  = 'L' - '0';
-			slot[9].curDigit  = 'E' - '0';
-			slot[10].curDigit = 'D' - '0';
-			slot[11].curDigit = SPACE_D;
-
-			vibes_long_pulse();
-		}
-		
-        animation_schedule(anim);
-       	app_timer_register(BATTERYDELAY, handle_timer, NULL);
 	}
 }
 
@@ -478,6 +486,7 @@ void handle_init() {
 	
 	accel_tap_service_subscribe(handle_tap);
 	
+	lastBluetoothStatus = bluetooth_connection_service_peek();
 	bluetooth_connection_service_subscribe(handle_bluetooth);
 }
 
