@@ -9,6 +9,7 @@ enum {
 	LANG_FRENCH,
 	LANG_GERMAN,
 	LANG_SPANISH,
+	LANG_ITALIAN,
 	LANG_MAX
 };
 
@@ -40,7 +41,8 @@ char weekDay[LANG_MAX][7][3] = {
 	{ "SU", "MO", "TU", "WE", "TH", "FR", "SA" },	// English
 	{ "DI", "LU", "MA", "ME", "JE", "VE", "SA" },	// French
 	{ "SO", "MO", "DI", "MI", "DO", "FR", "SA" },	// German
-	{ "DO", "LU", "MA", "MI", "JU", "VI", "SA" }		// Spanish
+	{ "DO", "LU", "MA", "MI", "JU", "VI", "SA" }	,	// Spanish
+	{ "DO", "LU", "MA", "ME", "GI", "VE", "SA" }		// Italian
 };
 
 int curLang = LANG_ENGLISH;

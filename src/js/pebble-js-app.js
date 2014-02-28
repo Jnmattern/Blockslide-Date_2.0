@@ -28,7 +28,7 @@ Pebble.addEventListener("showConfiguration", function(e) {
 	console.log("	dateorder: " + dateorder);
 	console.log("	weekday: " + weekday);
 	console.log("	lang: " + lang);
-	Pebble.openURL("http://www.famillemattern.com/jnm/pebble/Blockslide-Date/Blockslide-Date.php?dateorder=" + dateorder + "&weekday=" + weekday + "&lang=" + lang);
+	Pebble.openURL("http://www.famillemattern.com/jnm/pebble/Blockslide-Date/Blockslide-Date_2.1.0.php?dateorder=" + dateorder + "&weekday=" + weekday + "&lang=" + lang);
 });
 
 Pebble.addEventListener("webviewclosed", function(e) {
