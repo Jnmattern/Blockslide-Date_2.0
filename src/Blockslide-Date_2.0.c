@@ -311,7 +311,7 @@ void handle_tap(AccelAxisType axis, int32_t direction) {
 		slot[7].curDigit = SPACE_D;
 		slot[8].curDigit = (s==100)?1:SPACE_D;
 		slot[9].curDigit = (s<100)?s/10:0;
-		slot[10].curDigit = s/100;
+		slot[10].curDigit = (s<100)?s/100:0;
 		slot[11].curDigit = PERCENT;
 		
         animation_schedule(anim);
