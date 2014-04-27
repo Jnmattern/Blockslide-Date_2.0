@@ -16,7 +16,8 @@ enum {
 enum {
 	CONFIG_KEY_DATEORDER = 10,
 	CONFIG_KEY_WEEKDAY = 11,
-	CONFIG_KEY_LANG = 12
+	CONFIG_KEY_LANG = 12,
+	CONFIG_KEY_STRIPES = 13
 };
 
 
@@ -48,6 +49,8 @@ char weekDay[LANG_MAX][7][3] = {
 int curLang = LANG_ENGLISH;
 int showWeekday = 0;
 int USDate = 1;
+int stripedDigits = 1;
+bool stripedDigitsChanged = false;
 
 typedef struct {
 	Layer *layer;
@@ -155,7 +158,7 @@ void updateSlot(Layer *layer, GContext *ctx) {
 		}
 		
 		graphics_context_set_fill_color(ctx, GColorWhite);
-		graphics_fill_rect(ctx, GRect(ox, oy, slot->tileWidth, slot->tileHeight-1), 0, GCornerNone);
+		graphics_fill_rect(ctx, GRect(ox, oy, slot->tileWidth, slot->tileHeight-stripedDigits), 0, GCornerNone);
 	}
 }
 
@@ -179,6 +182,14 @@ void initSlot(int i, Layer *parent) {
 
 void deinitSlot(int i) {
 	layer_destroy(slot[i].layer);
+}
+
+void redrawAllSlots() {
+	int i;
+	
+	for (i=0; i<NUMSLOTS; i++) {
+		layer_mark_dirty(slot[i].layer);
+	}
 }
 
 void animateDigits(struct Animation *anim, const uint32_t normTime) {
@@ -404,21 +415,27 @@ void in_dropped_handler(AppMessageResult reason, void *context) {
 
 void in_received_handler(DictionaryIterator *received, void *context) {
 	bool somethingChanged = false;
-	
+		
 	Tuple *dateorder = dict_find(received, CONFIG_KEY_DATEORDER);
 	Tuple *weekday = dict_find(received, CONFIG_KEY_WEEKDAY);
 	Tuple *lang = dict_find(received, CONFIG_KEY_LANG);
+	Tuple *stripes = dict_find(received, CONFIG_KEY_STRIPES);
 	
-	if (dateorder && weekday && lang) {
-		APP_LOG(APP_LOG_LEVEL_DEBUG, "Received config (dateorder=%d, weekday=%d, lang=%d)",
-				(int)dateorder->value->int32, (int)weekday->value->int32, (int)lang->value->int32);
+	if (dateorder && weekday && lang && stripes) {
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Received config (dateorder=%d, weekday=%d, lang=%d, stripes=%d)",
+				(int)dateorder->value->int32, (int)weekday->value->int32, (int)lang->value->int32,
+				(int)stripes->value->int32);
 		
 		somethingChanged |= checkAndSaveInt(&USDate, dateorder->value->int32, CONFIG_KEY_DATEORDER);
 		somethingChanged |= checkAndSaveInt(&showWeekday, weekday->value->int32, CONFIG_KEY_WEEKDAY);
 		somethingChanged |= checkAndSaveInt(&curLang, lang->value->int32, CONFIG_KEY_LANG);
+		stripedDigitsChanged |= checkAndSaveInt(&stripedDigits, stripes->value->int32, CONFIG_KEY_STRIPES);
 				
 		if (somethingChanged) {
 			applyConfig();
+		} else if (stripedDigitsChanged) {
+			stripedDigitsChanged = false;
+			redrawAllSlots();
 		}
 	}
 }
@@ -445,8 +462,15 @@ void readConfig() {
 		persist_write_int(CONFIG_KEY_LANG, curLang);
 	}
 	
-	APP_LOG(APP_LOG_LEVEL_DEBUG, "Stored config (dateorder=%d, weekday=%d, lang=%d)",
-			USDate, showWeekday, curLang);
+	if (persist_exists(CONFIG_KEY_STRIPES)) {
+		stripedDigits = persist_read_int(CONFIG_KEY_STRIPES);
+	} else {
+		stripedDigits = 1;
+		persist_write_int(CONFIG_KEY_STRIPES, stripedDigits);
+	}
+	
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "Stored config (dateorder=%d, weekday=%d, lang=%d, stripedDigits=%d)",
+			USDate, showWeekday, curLang, stripedDigits);
 }
 
 static void app_message_init(void) {
