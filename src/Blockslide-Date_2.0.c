@@ -2,6 +2,10 @@
 
 #include "Blockslide-Date_2.0.h"
 
+/*
+ * 2014.06.18: Round Corners option implementation thanks to Ron64
+ */
+
 // Languages
 enum {
 	LANG_DUTCH =  0,
@@ -37,8 +41,8 @@ enum {
 #define CX 72
 #define CY 84
 #define NUMSLOTS 12
-#define TILEC 4
-#define DTILEC 1
+#define TILECORNERRADIUS 4
+#define DTILECORNERRADIUS 1
 
 char weekDay[LANG_MAX][7][3] = {
 	{ "ZO", "MA", "DI", "WO", "DO", "VR", "ZA" },	// Dutch
@@ -46,14 +50,14 @@ char weekDay[LANG_MAX][7][3] = {
 	{ "DI", "LU", "MA", "ME", "JE", "VE", "SA" },	// French
 	{ "SO", "MO", "DI", "MI", "DO", "FR", "SA" },	// German
 	{ "DO", "LU", "MA", "MI", "JU", "VI", "SA" },	// Spanish
-	{ "DO", "LU", "MA", "ME", "GI", "VE", "SA" }	// Italian
+	{ "DO", "LU", "MA", "ME", "GI", "VE", "SA" }  // Italian
 };
 
 int curLang = LANG_ENGLISH;
 int showWeekday = 0;
 int USDate = 1;
 int stripedDigits = 1;
-int cornersDigits = 1;
+int roundCorners = 1;
 bool stripedDigitsChanged = false;
 
 typedef struct {
@@ -63,7 +67,7 @@ typedef struct {
 	int   tileWidth;
 	int   tileHeight;
 	uint32_t normTime;
-	int   tileCorner;
+	int   cornerRadius;
 } digitSlot;
 
 Window *window;
@@ -135,9 +139,9 @@ digitSlot *findSlot(Layer *layer) {
 
 void updateSlot(Layer *layer, GContext *ctx) {
 	int t, tx1, tx2, ty1, ty2, ox, oy;
-	int oc;
-	uint8_t c_dig, p_dig;
-	GCornerMask cm;
+	int cornerRadius = 0;
+	uint8_t curCorner, prevCorner;
+	GCornerMask cornerMask;
 	GRect bounds;
 	digitSlot *slot;
 		
@@ -146,13 +150,21 @@ void updateSlot(Layer *layer, GContext *ctx) {
 	bounds = layer_get_bounds(slot->layer);
 	graphics_fill_rect(ctx, GRect(0, 0, bounds.size.w, bounds.size.h), 0, GCornerNone);
 	
-	c_dig=slot->curDigit;  if (c_dig>LAST_C) c_dig=LAST_C; //prevent error on mising corner data
-	p_dig=slot->prevDigit; if (p_dig>LAST_C) p_dig=LAST_C; //prevent error on mising corner data
-	
+	curCorner=slot->curDigit;
+  if (curCorner > NO_ROUND_CORNER) {
+    curCorner = NO_ROUND_CORNER; //prevent error on mising corner data
+  }
+
+	prevCorner=slot->prevDigit;
+  if (prevCorner > NO_ROUND_CORNER) {
+    prevCorner = NO_ROUND_CORNER; //prevent error on mising corner data
+  }
+
 	for (t=0; t<13; t++) {
-		cm=GCornerNone; oc=0;
+		cornerMask = GCornerNone;
+    cornerRadius = 0;
 		if (digits[slot->curDigit][t][0] != digits[slot->prevDigit][t][0]
-			|| digits[slot->curDigit][t][1] != digits[slot->prevDigit][t][1]) {
+        || digits[slot->curDigit][t][1] != digits[slot->prevDigit][t][1]) {
 			if (slot->normTime == ANIMATION_NORMALIZED_MAX) {
 				ox = digits[slot->curDigit][t][0]*slot->tileWidth;
 				oy = digits[slot->curDigit][t][1]*slot->tileHeight;
@@ -161,7 +173,7 @@ void updateSlot(Layer *layer, GContext *ctx) {
 				tx2 = digits[slot->curDigit][t][0]*slot->tileWidth;
 				ty1 = digits[slot->prevDigit][t][1]*slot->tileHeight;
 				ty2 = digits[slot->curDigit][t][1]*slot->tileHeight;
-				
+
 				ox = slot->normTime * (tx2-tx1) / ANIMATION_NORMALIZED_MAX + tx1;
 				oy = slot->normTime * (ty2-ty1) / ANIMATION_NORMALIZED_MAX + ty1;
 			}
@@ -169,34 +181,25 @@ void updateSlot(Layer *layer, GContext *ctx) {
 			ox = digits[slot->curDigit][t][0]*slot->tileWidth;
 			oy = digits[slot->curDigit][t][1]*slot->tileHeight;
 		}
-		
-		if (cornersDigits)
-		{
-			if (digit_corner[c_dig][t] != digit_corner[p_dig][t])
-			{
-				
-					// ToDo: fix calculation. Corner become smaller till half, and bigger afterward;
-					if (slot->normTime > ANIMATION_NORMALIZED_MAX)
-					{
-						oc=0;//
-						cm=digit_corner[p_dig][t]; //point to corner of prv digit
-					}
-					else
-					{
-						oc=slot->tileCorner;
-						cm=digit_corner[c_dig][t]; //point to corner of cur digit
-					}
-					
-			}
-			else
-			{
-				oc = slot->tileCorner;
-				cm=digit_corner[c_dig][t]; //point to corner of cur digit
+
+		if (roundCorners) {
+			if (digitCorners[curCorner][t] != digitCorners[prevCorner][t]) {
+        // ToDo: fix calculation. Corner become smaller till half, and bigger afterward;
+        if (slot->normTime > ANIMATION_NORMALIZED_MAX) {
+          cornerRadius = 0;
+          cornerMask = digitCorners[prevCorner][t]; //point to corner of prv digit
+        } else {
+          cornerRadius = slot->cornerRadius;
+          cornerMask = digitCorners[curCorner][t]; //point to corner of cur digit
+        }
+			} else {
+				cornerRadius = slot->cornerRadius;
+				cornerMask = digitCorners[curCorner][t]; //point to corner of cur digit
 			}
 		}
 
 		graphics_context_set_fill_color(ctx, GColorWhite);
-		graphics_fill_rect(ctx, GRect(ox, oy, slot->tileWidth, slot->tileHeight-stripedDigits), oc, cm);
+		graphics_fill_rect(ctx, GRect(ox, oy, slot->tileWidth, slot->tileHeight-stripedDigits), cornerRadius, cornerMask);
 	}
 }
 
@@ -208,12 +211,12 @@ void initSlot(int i, Layer *parent) {
 		// Hour slots -> big digits
 		slot[i].tileWidth = TILEW;
 		slot[i].tileHeight = TILEH;
-		slot[i].tileCorner = TILEC;
+		slot[i].cornerRadius = TILECORNERRADIUS;
 	} else {
 		// Date slots -> small digits
 		slot[i].tileWidth = DTILEW;
 		slot[i].tileHeight = DTILEH;
-		slot[i].tileCorner = DTILEC;
+		slot[i].cornerRadius = DTILECORNERRADIUS;
 	}
 	slot[i].layer = layer_create(slotFrame(i));
 	layer_set_update_proc(slot[i].layer, updateSlot);
@@ -478,7 +481,7 @@ void in_received_handler(DictionaryIterator *received, void *context) {
 		somethingChanged |= checkAndSaveInt(&showWeekday, weekday->value->int32, CONFIG_KEY_WEEKDAY);
 		somethingChanged |= checkAndSaveInt(&curLang, lang->value->int32, CONFIG_KEY_LANG);
 		stripedDigitsChanged |= checkAndSaveInt(&stripedDigits, stripes->value->int32, CONFIG_KEY_STRIPES) ||
-								checkAndSaveInt(&cornersDigits, corners->value->int32, CONFIG_KEY_CORNERS);
+								checkAndSaveInt(&roundCorners, corners->value->int32, CONFIG_KEY_CORNERS);
 				
 		if (somethingChanged) {
 			applyConfig();
@@ -519,14 +522,14 @@ void readConfig() {
 	}
 	
 	if (persist_exists(CONFIG_KEY_CORNERS)) {
-		cornersDigits = persist_read_int(CONFIG_KEY_CORNERS);
+		roundCorners = persist_read_int(CONFIG_KEY_CORNERS);
 	} else {
-		cornersDigits = 1;
-		persist_write_int(CONFIG_KEY_CORNERS, cornersDigits);
+		roundCorners = 1;
+		persist_write_int(CONFIG_KEY_CORNERS, roundCorners);
 	}
 	
-	APP_LOG(APP_LOG_LEVEL_DEBUG, "Stored config (dateorder=%d, weekday=%d, lang=%d, stripedDigits=%d, cornersDigits=%d)",
-			USDate, showWeekday, curLang, stripedDigits, cornersDigits);
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "Stored config (dateorder=%d, weekday=%d, lang=%d, stripedDigits=%d, roundCorners=%d)",
+			USDate, showWeekday, curLang, stripedDigits, roundCorners);
 }
 
 static void app_message_init(void) {

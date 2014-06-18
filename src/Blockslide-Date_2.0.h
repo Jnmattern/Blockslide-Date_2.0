@@ -1,3 +1,9 @@
+/*
+ * 2014.06.18: Round Corners option implementation thanks to Ron64
+ */
+
+
+
 //
 // Tiles coordinates & numbers
 //
@@ -72,19 +78,46 @@ int8_t digits[][13][2] = {
 	{ {0,5}, {1,5}, {2,5}, {0,6}, {2,6}, {0,7}, {1,7}, {2,7}, {0,8}, {2,8}, {0,9}, {1,9}, {2,9} }				// 48 // Space down
 };
 
-uint8_t digit_corner[][13] = {
-	{GCornerTopLeft, GCornerNone, GCornerTopRight, GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerBottomLeft, GCornerNone, GCornerBottomRight}, 	//0
-	{GCornersTop, GCornersTop, GCornersTop, GCornersLeft, GCornerNone, GCornerNone, GCornerNone, GCornerNone,  GCornerNone, GCornerNone, GCornersLeft, GCornerNone, GCornersRight }, 				//1
-	{GCornersLeft, GCornerTopRight, GCornerTopRight, GCornerTopRight, GCornerTopRight, GCornerTopLeft, GCornerNone, GCornerBottomRight, GCornerNone, GCornerNone,   GCornerBottomLeft, GCornerNone, GCornersRight}, //2
-	{GCornersLeft, GCornerNone, GCornerTopRight,  GCornerNone, GCornerNone,   GCornersLeft, GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornersLeft, GCornerNone, GCornerBottomRight}, 	//3
-	{GCornersTop, GCornersTop, GCornersTop, GCornerBottomLeft, GCornerNone,  GCornerBottomLeft, GCornerBottomLeft, GCornerNone, GCornerNone, GCornerNone,   GCornersBottom, GCornersBottom, GCornersBottom}, //4
-	{GCornerTopLeft, GCornerNone, GCornersRight,  GCornerNone, GCornerNone,    GCornerBottomLeft, GCornerNone, GCornerTopRight, GCornerBottomRight, GCornerBottomRight, GCornersLeft, GCornerBottomRight, GCornerBottomRight}, //5
-	{GCornerTopLeft, GCornerNone, GCornersRight,  GCornerNone, GCornerNone,		GCornerNone, GCornerNone, GCornerTopRight,  GCornerNone, GCornerNone,   GCornerBottomLeft, GCornerNone, GCornerBottomRight}, //6
-	{GCornersLeft, GCornerNone, GCornerTopRight,  GCornerBottomRight, GCornerBottomRight,    GCornerTopLeft, GCornerTopLeft, GCornerTopLeft,  GCornerNone, GCornerNone,   GCornersBottom, GCornersBottom, GCornersBottom}, //7
-	{GCornerTopLeft, GCornerNone, GCornerTopRight,  GCornerNone, GCornerNone,   GCornerNone, GCornerNone, GCornerNone,GCornerNone, GCornerNone,   GCornerBottomLeft, GCornerNone, GCornerBottomRight}, //8
-	{GCornerTopLeft, GCornerNone, GCornerTopRight,  GCornerNone, GCornerNone,   GCornerBottomLeft, GCornerNone, GCornerNone, GCornerNone, GCornerNone,   GCornersLeft, GCornerNone, GCornerBottomRight}, //9
-	{GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll}, 									//:
-	{GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornerBottomRight, GCornersAll, GCornerBottomRight, GCornerBottomRight, GCornerBottomRight||GCornerTopLeft, GCornerBottomRight||GCornerTopLeft, GCornerBottomRight||GCornerTopLeft}, //;
-	{GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerNone } 	//no corners
+uint8_t digitCorners[][13] = {
+  // 0
+	{ GCornerTopLeft, GCornerNone, GCornerTopRight, GCornerNone, GCornerNone, GCornerNone, GCornerNone,
+    GCornerNone, GCornerNone, GCornerNone, GCornerBottomLeft, GCornerNone, GCornerBottomRight},
+  // 1
+	{GCornersTop, GCornersTop, GCornersTop, GCornersLeft, GCornerNone, GCornerNone, GCornerNone,
+    GCornerNone, GCornerNone, GCornerNone, GCornersLeft, GCornerNone, GCornersRight },
+  // 2
+	{GCornersLeft, GCornerTopRight, GCornerTopRight, GCornerTopRight, GCornerTopRight, GCornerTopLeft, GCornerNone,
+    GCornerBottomRight, GCornerNone, GCornerNone, GCornerBottomLeft, GCornerNone, GCornersRight},
+  // 3
+	{GCornersLeft, GCornerNone, GCornerTopRight, GCornerNone, GCornerNone, GCornersLeft, GCornerNone,
+    GCornerNone, GCornerNone, GCornerNone, GCornersLeft, GCornerNone, GCornerBottomRight},
+  // 4
+	{GCornersTop, GCornersTop, GCornersTop, GCornerBottomLeft, GCornerNone, GCornerBottomLeft, GCornerBottomLeft,
+    GCornerNone, GCornerNone, GCornerNone, GCornersBottom, GCornersBottom, GCornersBottom},
+  // 5
+	{GCornerTopLeft, GCornerNone, GCornersRight, GCornerNone, GCornerNone, GCornerBottomLeft, GCornerNone,
+    GCornerTopRight, GCornerBottomRight, GCornerBottomRight, GCornersLeft, GCornerBottomRight, GCornerBottomRight},
+  // 6
+	{GCornerTopLeft, GCornerNone, GCornersRight,  GCornerNone, GCornerNone,	GCornerNone, GCornerNone, GCornerTopRight,
+    GCornerNone, GCornerNone, GCornerBottomLeft, GCornerNone, GCornerBottomRight},
+  // 7
+	{GCornersLeft, GCornerNone, GCornerTopRight, GCornerBottomRight, GCornerBottomRight, GCornerTopLeft, GCornerTopLeft,
+    GCornerTopLeft,  GCornerNone, GCornerNone, GCornersBottom, GCornersBottom, GCornersBottom},
+  // 8
+	{GCornerTopLeft, GCornerNone, GCornerTopRight, GCornerNone, GCornerNone, GCornerNone, GCornerNone,
+    GCornerNone, GCornerNone, GCornerNone, GCornerBottomLeft, GCornerNone, GCornerBottomRight},
+  // 9
+	{GCornerTopLeft, GCornerNone, GCornerTopRight, GCornerNone, GCornerNone, GCornerBottomLeft, GCornerNone,
+    GCornerNone, GCornerNone, GCornerNone, GCornersLeft, GCornerNone, GCornerBottomRight},
+  // :
+	{GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll,
+    GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll},
+  // ;
+	{GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornerBottomRight,
+    GCornersAll, GCornerBottomRight, GCornerBottomRight, GCornerBottomRight||GCornerTopLeft,
+    GCornerBottomRight||GCornerTopLeft, GCornerBottomRight||GCornerTopLeft},
+  // No round corner
+	{GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerNone,
+    GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerNone }
 };
-#define LAST_C 12
+#define NO_ROUND_CORNER 12
