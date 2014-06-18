@@ -105,7 +105,7 @@
 
         <div data-role="fieldcontain">
             <label for="corners">
-                Rounded digits coreners
+                Round Digit Corners
             </label>
             <select name="corners" id="corners" data-theme="" data-role="slider" data-mini="true">
 <?php
