@@ -18,15 +18,21 @@ if (!stripes) {
 	stripes = 1;
 }
 
+var corners = localStorage.getItem("corners");
+if (!corners) {
+	corners = 1;
+}
+
 Pebble.addEventListener("ready", function() {
 	console.log("Ready Event");
 	console.log("	dateorder: " + dateorder);
 	console.log("	weekday: " + weekday);
 	console.log("	lang: " + lang);
 	console.log("	stripes: " + stripes);
+	console.log("	corners: " + corners);
 
 	
-	Pebble.sendAppMessage(JSON.parse('{"dateorder":'+dateorder+',"weekday":'+weekday+',"lang":'+lang+',"stripes":'+stripes+'}'));
+	Pebble.sendAppMessage(JSON.parse('{"dateorder":'+dateorder+',"weekday":'+weekday+',"lang":'+lang+',"stripes":'+stripes+',"corners":'+corners+'}'));
 });
 
 Pebble.addEventListener("showConfiguration", function(e) {
@@ -35,7 +41,8 @@ Pebble.addEventListener("showConfiguration", function(e) {
 	console.log("	weekday: " + weekday);
 	console.log("	lang: " + lang);
 	console.log("	stripes: " + stripes);
-	Pebble.openURL("http://www.famillemattern.com/jnm/pebble/Blockslide-Date/Blockslide-Date_2.1.2.php?dateorder=" + dateorder + "&weekday=" + weekday + "&lang=" + lang + "&stripes=" + stripes);
+	console.log("	corners: " + corners);
+	Pebble.openURL("http://www.famillemattern.com/jnm/pebble/Blockslide-Date/Blockslide-Date_2.2.0.php?dateorder=" + dateorder + "&weekday=" + weekday + "&lang=" + lang + "&stripes=" + stripes + "&corners=" + corners);
 });
 
 Pebble.addEventListener("webviewclosed", function(e) {
@@ -57,4 +64,7 @@ Pebble.addEventListener("webviewclosed", function(e) {
 						
 	stripes = configuration["stripes"];
 	localStorage.setItem("stripes", stripes);
+
+	corners = configuration["corners"];
+	localStorage.setItem("corners", corners);
 });

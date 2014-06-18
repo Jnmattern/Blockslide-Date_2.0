@@ -17,7 +17,8 @@ enum {
 	CONFIG_KEY_DATEORDER = 10,
 	CONFIG_KEY_WEEKDAY = 11,
 	CONFIG_KEY_LANG = 12,
-	CONFIG_KEY_STRIPES = 13
+	CONFIG_KEY_STRIPES = 13,
+	CONFIG_KEY_CORNERS = 14
 };
 
 
@@ -29,27 +30,30 @@ enum {
 #define DHSPACE 4
 #define VSPACE 8
 #define DIGIT_CHANGE_ANIM_DURATION 800
-#define STARTDELAY 1500
+#define STARTDELAY 700
 #define BATTERYDELAY 5000
 #define SCREENW 144
 #define SCREENH 168
 #define CX 72
 #define CY 84
 #define NUMSLOTS 12
+#define TILEC 4
+#define DTILEC 1
 
 char weekDay[LANG_MAX][7][3] = {
 	{ "ZO", "MA", "DI", "WO", "DO", "VR", "ZA" },	// Dutch
 	{ "SU", "MO", "TU", "WE", "TH", "FR", "SA" },	// English
 	{ "DI", "LU", "MA", "ME", "JE", "VE", "SA" },	// French
 	{ "SO", "MO", "DI", "MI", "DO", "FR", "SA" },	// German
-	{ "DO", "LU", "MA", "MI", "JU", "VI", "SA" }	,	// Spanish
-	{ "DO", "LU", "MA", "ME", "GI", "VE", "SA" }		// Italian
+	{ "DO", "LU", "MA", "MI", "JU", "VI", "SA" },	// Spanish
+	{ "DO", "LU", "MA", "ME", "GI", "VE", "SA" }	// Italian
 };
 
 int curLang = LANG_ENGLISH;
 int showWeekday = 0;
 int USDate = 1;
 int stripedDigits = 1;
+int cornersDigits = 1;
 bool stripedDigitsChanged = false;
 
 typedef struct {
@@ -59,6 +63,7 @@ typedef struct {
 	int   tileWidth;
 	int   tileHeight;
 	uint32_t normTime;
+	int   tileCorner;
 } digitSlot;
 
 Window *window;
@@ -82,6 +87,7 @@ int startDigit[NUMSLOTS] = {
 bool splashEnded = false;
 bool animRunning = false;
 bool lastBluetoothStatus = true;
+static AppTimer *timer;
 
 AnimationImplementation animImpl;
 Animation *anim;
@@ -129,6 +135,9 @@ digitSlot *findSlot(Layer *layer) {
 
 void updateSlot(Layer *layer, GContext *ctx) {
 	int t, tx1, tx2, ty1, ty2, ox, oy;
+	int oc;
+	uint8_t c_dig, p_dig;
+	GCornerMask cm;
 	GRect bounds;
 	digitSlot *slot;
 		
@@ -137,7 +146,11 @@ void updateSlot(Layer *layer, GContext *ctx) {
 	bounds = layer_get_bounds(slot->layer);
 	graphics_fill_rect(ctx, GRect(0, 0, bounds.size.w, bounds.size.h), 0, GCornerNone);
 	
+	c_dig=slot->curDigit;  if (c_dig>LAST_C) c_dig=LAST_C; //prevent error on mising corner data
+	p_dig=slot->prevDigit; if (p_dig>LAST_C) p_dig=LAST_C; //prevent error on mising corner data
+	
 	for (t=0; t<13; t++) {
+		cm=GCornerNone; oc=0;
 		if (digits[slot->curDigit][t][0] != digits[slot->prevDigit][t][0]
 			|| digits[slot->curDigit][t][1] != digits[slot->prevDigit][t][1]) {
 			if (slot->normTime == ANIMATION_NORMALIZED_MAX) {
@@ -157,8 +170,33 @@ void updateSlot(Layer *layer, GContext *ctx) {
 			oy = digits[slot->curDigit][t][1]*slot->tileHeight;
 		}
 		
+		if (cornersDigits)
+		{
+			if (digit_corner[c_dig][t] != digit_corner[p_dig][t])
+			{
+				
+					// ToDo: fix calculation. Corner become smaller till half, and bigger afterward;
+					if (slot->normTime > ANIMATION_NORMALIZED_MAX)
+					{
+						oc=0;//
+						cm=digit_corner[p_dig][t]; //point to corner of prv digit
+					}
+					else
+					{
+						oc=slot->tileCorner;
+						cm=digit_corner[c_dig][t]; //point to corner of cur digit
+					}
+					
+			}
+			else
+			{
+				oc = slot->tileCorner;
+				cm=digit_corner[c_dig][t]; //point to corner of cur digit
+			}
+		}
+
 		graphics_context_set_fill_color(ctx, GColorWhite);
-		graphics_fill_rect(ctx, GRect(ox, oy, slot->tileWidth, slot->tileHeight-stripedDigits), 0, GCornerNone);
+		graphics_fill_rect(ctx, GRect(ox, oy, slot->tileWidth, slot->tileHeight-stripedDigits), oc, cm);
 	}
 }
 
@@ -170,10 +208,12 @@ void initSlot(int i, Layer *parent) {
 		// Hour slots -> big digits
 		slot[i].tileWidth = TILEW;
 		slot[i].tileHeight = TILEH;
+		slot[i].tileCorner = TILEC;
 	} else {
 		// Date slots -> small digits
 		slot[i].tileWidth = DTILEW;
 		slot[i].tileHeight = DTILEH;
+		slot[i].tileCorner = DTILEC;
 	}
 	slot[i].layer = layer_create(slotFrame(i));
 	layer_set_update_proc(slot[i].layer, updateSlot);
@@ -288,7 +328,7 @@ void handle_tick(struct tm *now, TimeUnits units_changed) {
     }
 }
 
-void handle_timer(void *data) {
+void do_update() {
 	time_t curTime;
 	struct tm *now;
 	
@@ -296,6 +336,11 @@ void handle_timer(void *data) {
 	curTime = time(NULL);
 	now = localtime(&curTime);
     handle_tick(now, 0);
+}
+
+void handle_timer(void *data) {
+	timer=NULL;
+	do_update();
 }
 
 void handle_tap(AccelAxisType axis, int32_t direction) {
@@ -326,7 +371,8 @@ void handle_tap(AccelAxisType axis, int32_t direction) {
 		slot[11].curDigit = PERCENT;
 		
         animation_schedule(anim);
-       	app_timer_register(BATTERYDELAY, handle_timer, NULL);
+		if (timer==NULL)
+				timer= app_timer_register(BATTERYDELAY, handle_timer, NULL);
 	}
 }
 
@@ -383,14 +429,15 @@ void handle_bluetooth(bool connected) {
 			}
 			
 			animation_schedule(anim);
-			app_timer_register(BATTERYDELAY, handle_timer, NULL);
+			if (timer==NULL)
+				timer=app_timer_register(BATTERYDELAY, handle_timer, NULL);
 		}
 	}
 }
 
 void applyConfig() {
 	if (splashEnded) {
-		handle_timer(NULL);
+		do_update();
 	}
 }
 
@@ -420,16 +467,18 @@ void in_received_handler(DictionaryIterator *received, void *context) {
 	Tuple *weekday = dict_find(received, CONFIG_KEY_WEEKDAY);
 	Tuple *lang = dict_find(received, CONFIG_KEY_LANG);
 	Tuple *stripes = dict_find(received, CONFIG_KEY_STRIPES);
+	Tuple *corners = dict_find(received, CONFIG_KEY_CORNERS);
 	
-	if (dateorder && weekday && lang && stripes) {
-		APP_LOG(APP_LOG_LEVEL_DEBUG, "Received config (dateorder=%d, weekday=%d, lang=%d, stripes=%d)",
+	if (dateorder && weekday && lang && stripes && corners) {
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Received config (dateorder=%d, weekday=%d, lang=%d, stripes=%d, corners=%d)",
 				(int)dateorder->value->int32, (int)weekday->value->int32, (int)lang->value->int32,
-				(int)stripes->value->int32);
+				(int)stripes->value->int32, (int)corners->value->int32);
 		
 		somethingChanged |= checkAndSaveInt(&USDate, dateorder->value->int32, CONFIG_KEY_DATEORDER);
 		somethingChanged |= checkAndSaveInt(&showWeekday, weekday->value->int32, CONFIG_KEY_WEEKDAY);
 		somethingChanged |= checkAndSaveInt(&curLang, lang->value->int32, CONFIG_KEY_LANG);
-		stripedDigitsChanged |= checkAndSaveInt(&stripedDigits, stripes->value->int32, CONFIG_KEY_STRIPES);
+		stripedDigitsChanged |= checkAndSaveInt(&stripedDigits, stripes->value->int32, CONFIG_KEY_STRIPES) ||
+								checkAndSaveInt(&cornersDigits, corners->value->int32, CONFIG_KEY_CORNERS);
 				
 		if (somethingChanged) {
 			applyConfig();
@@ -469,8 +518,15 @@ void readConfig() {
 		persist_write_int(CONFIG_KEY_STRIPES, stripedDigits);
 	}
 	
-	APP_LOG(APP_LOG_LEVEL_DEBUG, "Stored config (dateorder=%d, weekday=%d, lang=%d, stripedDigits=%d)",
-			USDate, showWeekday, curLang, stripedDigits);
+	if (persist_exists(CONFIG_KEY_CORNERS)) {
+		cornersDigits = persist_read_int(CONFIG_KEY_CORNERS);
+	} else {
+		cornersDigits = 1;
+		persist_write_int(CONFIG_KEY_CORNERS, cornersDigits);
+	}
+	
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "Stored config (dateorder=%d, weekday=%d, lang=%d, stripedDigits=%d, cornersDigits=%d)",
+			USDate, showWeekday, curLang, stripedDigits, cornersDigits);
 }
 
 static void app_message_init(void) {
@@ -506,7 +562,7 @@ void handle_init() {
 	animation_set_duration(anim, DIGIT_CHANGE_ANIM_DURATION);
 	animation_set_implementation(anim, &animImpl);
 	
-	app_timer_register(STARTDELAY, handle_timer, NULL);
+	timer= app_timer_register(STARTDELAY, handle_timer, NULL);
 
 	tick_timer_service_subscribe(MINUTE_UNIT, handle_tick);
 	
@@ -518,10 +574,15 @@ void handle_init() {
 
 void handle_deinit() {
 	int i;
-	
+	if (timer!=NULL)
+	{
+		app_timer_cancel(timer);
+		timer=NULL;
+	}
 	bluetooth_connection_service_unsubscribe();
 	accel_tap_service_unsubscribe();
 	tick_timer_service_unsubscribe();
+	animation_destroy(anim);
 	
 	for (i=0; i<NUMSLOTS; i++) {
 		deinitSlot(i);
