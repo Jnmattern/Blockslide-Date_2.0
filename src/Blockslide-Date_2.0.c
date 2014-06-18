@@ -2,6 +2,10 @@
 
 #include "Blockslide-Date_2.0.h"
 
+/*
+ * 2014.06.18: Round Corners option implementation thanks to Ron64
+ */
+
 // Languages
 enum {
 	LANG_DUTCH =  0,

@@ -1,3 +1,9 @@
+/*
+ * 2014.06.18: Round Corners option implementation thanks to Ron64
+ */
+
+
+
 //
 // Tiles coordinates & numbers
 //
