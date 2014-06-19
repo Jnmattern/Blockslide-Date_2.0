@@ -22,7 +22,8 @@ enum {
 	CONFIG_KEY_WEEKDAY = 11,
 	CONFIG_KEY_LANG = 12,
 	CONFIG_KEY_STRIPES = 13,
-	CONFIG_KEY_CORNERS = 14
+	CONFIG_KEY_ROUNDCORNERS = 14,
+	CONFIG_KEY_FULLDIGITS = 15
 };
 
 
@@ -58,7 +59,9 @@ int showWeekday = 0;
 int USDate = 1;
 int stripedDigits = 1;
 int roundCorners = 1;
-bool stripedDigitsChanged = false;
+int fullDigits = 0;
+bool digitShapesChanged = false;
+
 
 typedef struct {
 	Layer *layer;
@@ -463,30 +466,62 @@ bool checkAndSaveInt(int *var, int val, int key) {
 void in_dropped_handler(AppMessageResult reason, void *context) {
 }
 
+void swapDigitShapes() {
+  int8_t v0, v1;
+  uint8_t c;
+  int i;
+
+  for (i = 0; i < 13; i++) {
+    // Swap digit 2
+    digits[2][i][0] = digit2[fullDigits][i][0];
+    digits[2][i][1] = digit2[fullDigits][i][1];
+    digitCorners[2][i] = digit2Corner[fullDigits][i];
+    // Swap digit 4
+    digits[4][i][0] = digit4[fullDigits][i][0];
+    digits[4][i][1] = digit4[fullDigits][i][1];
+    digitCorners[4][i] = digit4Corner[fullDigits][i];
+    // Swap digit 5
+    digits[5][i][0] = digit5[fullDigits][i][0];
+    digits[5][i][1] = digit5[fullDigits][i][1];
+    digitCorners[5][i] = digit5Corner[fullDigits][i];
+  }
+}
+
 void in_received_handler(DictionaryIterator *received, void *context) {
 	bool somethingChanged = false;
+  bool digitShapesHaveToBeSwapped = false;
 		
 	Tuple *dateorder = dict_find(received, CONFIG_KEY_DATEORDER);
 	Tuple *weekday = dict_find(received, CONFIG_KEY_WEEKDAY);
 	Tuple *lang = dict_find(received, CONFIG_KEY_LANG);
 	Tuple *stripes = dict_find(received, CONFIG_KEY_STRIPES);
-	Tuple *corners = dict_find(received, CONFIG_KEY_CORNERS);
-	
-	if (dateorder && weekday && lang && stripes && corners) {
-		APP_LOG(APP_LOG_LEVEL_DEBUG, "Received config (dateorder=%d, weekday=%d, lang=%d, stripes=%d, corners=%d)",
+	Tuple *corners = dict_find(received, CONFIG_KEY_ROUNDCORNERS);
+	Tuple *digits = dict_find(received, CONFIG_KEY_FULLDIGITS);
+
+	if (dateorder && weekday && lang && stripes && corners && digits) {
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Received config (dateorder=%d, weekday=%d, lang=%d, stripes=%d, corners=%d, digits=%d)",
 				(int)dateorder->value->int32, (int)weekday->value->int32, (int)lang->value->int32,
-				(int)stripes->value->int32, (int)corners->value->int32);
+				(int)stripes->value->int32, (int)corners->value->int32, (int)digits->value->int32);
 		
 		somethingChanged |= checkAndSaveInt(&USDate, dateorder->value->int32, CONFIG_KEY_DATEORDER);
 		somethingChanged |= checkAndSaveInt(&showWeekday, weekday->value->int32, CONFIG_KEY_WEEKDAY);
 		somethingChanged |= checkAndSaveInt(&curLang, lang->value->int32, CONFIG_KEY_LANG);
-		stripedDigitsChanged |= checkAndSaveInt(&stripedDigits, stripes->value->int32, CONFIG_KEY_STRIPES) ||
-								checkAndSaveInt(&roundCorners, corners->value->int32, CONFIG_KEY_CORNERS);
-				
+
+    digitShapesChanged = false;
+    digitShapesChanged |= checkAndSaveInt(&stripedDigits, stripes->value->int32, CONFIG_KEY_STRIPES);
+		digitShapesChanged |= checkAndSaveInt(&roundCorners, corners->value->int32, CONFIG_KEY_ROUNDCORNERS);
+
+    digitShapesHaveToBeSwapped = checkAndSaveInt(&fullDigits, digits->value->int32, CONFIG_KEY_FULLDIGITS);
+		digitShapesChanged |= digitShapesHaveToBeSwapped;
+
+    if (digitShapesHaveToBeSwapped) {
+      swapDigitShapes();
+    }
+
 		if (somethingChanged) {
 			applyConfig();
-		} else if (stripedDigitsChanged) {
-			stripedDigitsChanged = false;
+		} else if (digitShapesChanged) {
+			digitShapesChanged = false;
 			redrawAllSlots();
 		}
 	}
@@ -521,21 +556,29 @@ void readConfig() {
 		persist_write_int(CONFIG_KEY_STRIPES, stripedDigits);
 	}
 	
-	if (persist_exists(CONFIG_KEY_CORNERS)) {
-		roundCorners = persist_read_int(CONFIG_KEY_CORNERS);
+	if (persist_exists(CONFIG_KEY_ROUNDCORNERS)) {
+		roundCorners = persist_read_int(CONFIG_KEY_ROUNDCORNERS);
 	} else {
 		roundCorners = 1;
-		persist_write_int(CONFIG_KEY_CORNERS, roundCorners);
+		persist_write_int(CONFIG_KEY_ROUNDCORNERS, roundCorners);
 	}
-	
-	APP_LOG(APP_LOG_LEVEL_DEBUG, "Stored config (dateorder=%d, weekday=%d, lang=%d, stripedDigits=%d, roundCorners=%d)",
-			USDate, showWeekday, curLang, stripedDigits, roundCorners);
+
+	if (persist_exists(CONFIG_KEY_FULLDIGITS)) {
+		fullDigits = persist_read_int(CONFIG_KEY_FULLDIGITS);
+	} else {
+		fullDigits = 0;
+		persist_write_int(CONFIG_KEY_FULLDIGITS, fullDigits);
+	}
+
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "Stored config :");
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "  dateorder=%d, weekday=%d, lang=%d, stripedDigits=%d, roundCorners=%d, fullDigits=%d",
+			USDate, showWeekday, curLang, stripedDigits, roundCorners, fullDigits);
 }
 
 static void app_message_init(void) {
 	app_message_register_inbox_received(in_received_handler);
 	app_message_register_inbox_dropped(in_dropped_handler);
-	app_message_open(64, 64);
+	app_message_open(128, 128);
 }
 
 
@@ -548,6 +591,7 @@ void handle_init() {
 	window_stack_push(window, true);
 	
 	readConfig();
+  swapDigitShapes();
 	app_message_init();
 
 	rootLayer = window_get_root_layer(window);
@@ -577,11 +621,11 @@ void handle_init() {
 
 void handle_deinit() {
 	int i;
-	if (timer!=NULL)
-	{
+	if (timer != NULL) {
 		app_timer_cancel(timer);
 		timer=NULL;
 	}
+
 	bluetooth_connection_service_unsubscribe();
 	accel_tap_service_unsubscribe();
 	tick_timer_service_unsubscribe();
