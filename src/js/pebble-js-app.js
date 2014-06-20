@@ -49,7 +49,7 @@ Pebble.addEventListener("showConfiguration", function(e) {
 	console.log("	stripes: " + stripes);
 	console.log("	roundcorners: " + roundcorners);
 	console.log("	fulldigits: " + fulldigits);
-	Pebble.openURL("http://www.famillemattern.com/jnm/pebble/Blockslide-Date/Blockslide-Date_2.2.2.php?dateorder=" + dateorder + "&weekday=" + weekday + "&lang=" + lang + "&stripes=" + stripes + "&roundcorners=" + roundcorners + "&fulldigits=" + fulldigits);
+	Pebble.openURL("http://www.famillemattern.com/jnm/pebble/Blockslide-Date/Blockslide-Date_2.2.1.php?dateorder=" + dateorder + "&weekday=" + weekday + "&lang=" + lang + "&stripes=" + stripes + "&roundcorners=" + roundcorners + "&fulldigits=" + fulldigits);
 });
 
 Pebble.addEventListener("webviewclosed", function(e) {
