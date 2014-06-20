@@ -30,8 +30,6 @@
     </div>
     <div data-role="content">
 
-<fieldset class="ui-grid-a">
-  <div class="ui-block-a">
 		<div id="dateorder" data-role="fieldcontain">
 			<fieldset data-role="controlgroup" data-type="horizontal" data-mini="true">
 				<legend>Date format</legend>
@@ -56,48 +54,7 @@
 ?>
 			</fieldset>
 		</div>
-      <div id="stripes" data-role="fieldcontain">
-        <fieldset data-role="controlgroup" data-type="vertical" data-mini="true">
-          <legend>Stripes</legend>
-<?php
-	if (!isset($_GET['stripes'])) {
-		$stripes = 1;
-	} else {
-		$stripes = $_GET['stripes'];
-	}
 
-	$s = array( "", "");
-	$s[$stripes] = " checked";
-
-	echo '<input id="stripes1" name="stripes" value="0" data-theme="" type="radio"' . $s[0] . '><label for="stripes1"><img src="digitsPlain.png" width="72" height="72"></label>';
-	echo '<input id="stripes2" name="stripes" value="1" data-theme="" type="radio"' . $s[1] . '><label for="stripes2"><img src="digits1.png" width="72" height="72"></label>';
-?>
-        </fieldset>
-      </div>
-
-      <div id="roundcorners" data-role="fieldcontain">
-        <fieldset data-role="controlgroup" data-type="vertical" data-mini="true">
-          <legend>Corners</legend>
-<?php
-	if (!isset($_GET['roundcorners'])) {
-		$roundcorners = 1;
-	} else {
-		$roundcorners = $_GET['roundcorners'];
-	}
-
-	$s = array( "", "");
-	$s[$roundcorners] = " checked";
-
-	echo '<input id="corners1" name="roundcorners" value="0" data-theme="" type="radio"' . $s[0] . '><label for="corners1"><img src="digitsNoCorners.png" width="72" height="72"></label>';
-	echo '<input id="corners2" name="roundcorners" value="1" data-theme="" type="radio"' . $s[1] . '><label for="corners2"><img src="digitsCorners.png" width="72" height="72"></label>';
-?>
-        </fieldset>
-      </div>
-
-
-
-  </div>
-  <div class="ui-block-b">
         <div data-role="fieldcontain">
           <fieldset data-role="controlgroup" data-type="horizontal" data-mini="true">
             <legend>Show day of week</legend>
@@ -121,29 +78,12 @@
 ?>
         </fieldset>
         </div>
-      <div id="fulldigits" data-role="fieldcontain">
-        <fieldset data-role="controlgroup" data-type="vertical" data-mini="true">
-          <legend>Digit Type</legend>
-<?php
-	if (!isset($_GET['fulldigits'])) {
-		$fulldigits = 0;
-	} else {
-		$fulldigits = $_GET['fulldigits'];
-	}
 
-	$s = array( "", "");
-	$s[$fulldigits] = " checked";
-
-	echo '<input id="format1" name="fulldigits" value="0" data-theme="" type="radio"' . $s[0] . '><label for="format1"><img src="digits1.png" width="72" height="72"></label>';
-	echo '<input id="format2" name="fulldigits" value="1" data-theme="" type="radio"' . $s[1] . '><label for="format2"><img src="digits2.png" width="72" height="72"></label>';
-?>
-        </fieldset>
-      </div>
 		<div data-role="fieldcontain">
 			<label for="lang">
 				Language
 			</label>
-			<select id="lang" data-native-menu="true" name="lang" data-mini="true">
+			<select id="lang" data-native-menu="true" name="lang">
 <?php
 	$langs = array(
 		0 => 'Dutch',
@@ -171,10 +111,69 @@
 	?>
 			</select>
 		</div>
+
+      <div id="stripes" data-role="fieldcontain">
+        <fieldset data-role="controlgroup" data-type="horizontal">
+          <legend>Stripes</legend>
+
+<?php
+	if (!isset($_GET['stripes'])) {
+		$stripes = 1;
+	} else {
+		$stripes = $_GET['stripes'];
+	}
+
+	$s = array( "", "");
+	$s[$stripes] = " checked";
+
+	echo '<input id="stripes1" name="stripes" value="0" data-theme="" type="radio"' . $s[0] . '><label for="stripes1"><img src="digitsPlain.png" width="72" height="72"><br/>Plain</label>';
+	echo '<input id="stripes2" name="stripes" value="1" data-theme="" type="radio"' . $s[1] . '><label for="stripes2"><img src="digits1.png" width="72" height="72"><br/>Striped</label>';
+?>
+        </fieldset>
+      </div>
+
+      <div id="roundcorners" data-role="fieldcontain">
+        <fieldset data-role="controlgroup" data-type="horizontal">
+          <legend>Corners</legend>
+
+<?php
+	if (!isset($_GET['roundcorners'])) {
+		$roundcorners = 1;
+	} else {
+		$roundcorners = $_GET['roundcorners'];
+	}
+
+	$s = array( "", "");
+	$s[$roundcorners] = " checked";
+
+	echo '<input id="corners1" name="roundcorners" value="0" data-theme="" type="radio"' . $s[0] . '><label for="corners1"><img src="digitsNoCorners.png" width="72" height="72"><br/>Flat</label>';
+	echo '<input id="corners2" name="roundcorners" value="1" data-theme="" type="radio"' . $s[1] . '><label for="corners2"><img src="digitsCorners.png" width="72" height="72"><br/>Round</label>';
+?>
+        </fieldset>
+      </div>
+
+
+      <div id="fulldigits" data-role="fieldcontain">
+        <fieldset data-role="controlgroup" data-type="horizontal">
+          <legend>Digits Shape</legend>
+
+<?php
+	if (!isset($_GET['fulldigits'])) {
+		$fulldigits = 0;
+	} else {
+		$fulldigits = $_GET['fulldigits'];
+	}
+
+	$s = array( "", "");
+	$s[$fulldigits] = " checked";
+
+	echo '<input id="format1" name="fulldigits" value="0" data-theme="" type="radio"' . $s[0] . '><label for="format1"><img src="digits1.png" width="72" height="72"><br/>Original</label>';
+	echo '<input id="format2" name="fulldigits" value="1" data-theme="" type="radio"' . $s[1] . '><label for="format2"><img src="digits2.png" width="72" height="72"><br/>Regular</label>';
+?>
+        </fieldset>
+      </div>
   </div>
 
-	</div>
-</div>
 
     <script>
       function saveOptions() {
