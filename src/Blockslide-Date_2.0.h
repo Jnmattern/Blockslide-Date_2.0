@@ -21,7 +21,8 @@
 #define SPACE_R 47
 #define SPACE_D	48
 
-int8_t digits[][13][2] = {
+#define NUM_DIGITS 49
+int8_t digits[NUM_DIGITS][13][2] = {
   // Tiles
   // 00     01     02     03     04     05     06     07     08     09     10     11     12
   { {0,0}, {1,0}, {2,0}, {0,1}, {2,1}, {0,2}, {2,2}, {2,2}, {0,3}, {2,3}, {0,4}, {1,4}, {2,4} },    // 0 // ASCII 48
@@ -91,66 +92,4 @@ int8_t digit5[2][13][2] = {
   { {0,0}, {1,0}, {2,0}, {0,1}, {0,1}, {0,2}, {1,2}, {2,2}, {2,3}, {2,3}, {0,4}, {1,4}, {2,4} }
 };
 
-uint8_t digitCorners[][13] = {
-  // 0
-	{ GCornerTopLeft, GCornerNone, GCornerTopRight, GCornerNone, GCornerNone, GCornerNone, GCornerNone,
-    GCornerNone, GCornerNone, GCornerNone, GCornerBottomLeft, GCornerNone, GCornerBottomRight },
-  // 1
-	{ GCornersTop, GCornersTop, GCornersTop, GCornersLeft, GCornerNone, GCornerNone, GCornerNone,
-    GCornerNone, GCornerNone, GCornerNone, GCornersLeft, GCornerNone, GCornersRight },
-  // 2
-	{ GCornersLeft, GCornerTopRight, GCornerTopRight, GCornerTopRight, GCornerTopRight, GCornerTopLeft, GCornerNone,
-    GCornerBottomRight, GCornerNone, GCornerNone, GCornerBottomLeft, GCornerNone, GCornersRight },
-  // 3
-	{ GCornersLeft, GCornerNone, GCornerTopRight, GCornerNone, GCornerNone, GCornersLeft, GCornerNone,
-    GCornerNone, GCornerNone, GCornerNone, GCornersLeft, GCornerNone, GCornerBottomRight },
-  // 4
-	{ GCornersTop, GCornersTop, GCornersTop, GCornerBottomLeft, GCornerNone, GCornerBottomLeft, GCornerBottomLeft,
-    GCornerNone, GCornerNone, GCornerNone, GCornersBottom, GCornersBottom, GCornersBottom },
-  // 5
-	{ GCornerTopLeft, GCornerNone, GCornersRight, GCornerNone, GCornerNone, GCornerBottomLeft, GCornerNone,
-    GCornerTopRight, GCornerBottomRight, GCornerBottomRight, GCornersLeft, GCornerBottomRight, GCornerBottomRight },
-  // 6
-	{ GCornerTopLeft, GCornerNone, GCornersRight,  GCornerNone, GCornerNone,	GCornerNone, GCornerNone, GCornerTopRight,
-    GCornerNone, GCornerNone, GCornerBottomLeft, GCornerNone, GCornerBottomRight },
-  // 7
-	{ GCornersLeft, GCornerNone, GCornerTopRight, GCornerBottomRight, GCornerBottomRight, GCornerTopLeft, GCornerTopLeft,
-    GCornerTopLeft,  GCornerNone, GCornerNone, GCornersBottom, GCornersBottom, GCornersBottom },
-  // 8
-	{ GCornerTopLeft, GCornerNone, GCornerTopRight, GCornerNone, GCornerNone, GCornerNone, GCornerNone,
-    GCornerNone, GCornerNone, GCornerNone, GCornerBottomLeft, GCornerNone, GCornerBottomRight },
-  // 9
-	{ GCornerTopLeft, GCornerNone, GCornerTopRight, GCornerNone, GCornerNone, GCornerBottomLeft, GCornerNone,
-    GCornerNone, GCornerNone, GCornerNone, GCornersLeft, GCornerNone, GCornerBottomRight },
-  // :
-	{ GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll,
-    GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll },
-  // ;
-	{ GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornersAll,GCornerBottomRight,
-    GCornersAll, GCornerBottomRight, GCornerBottomRight, GCornerBottomRight||GCornerTopLeft,
-    GCornerBottomRight||GCornerTopLeft, GCornerBottomRight||GCornerTopLeft },
-  // No round corner
-	{ GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerNone,
-    GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerNone, GCornerNone }
-};
-#define NO_ROUND_CORNER 12
-
-uint8_t digit2Corner[2][13] = {
-	{ GCornersLeft, GCornerTopRight, GCornerTopRight, GCornerTopRight, GCornerTopRight, GCornerTopLeft, GCornerNone,
-    GCornerBottomRight, GCornerNone, GCornerNone, GCornerBottomLeft, GCornerNone, GCornersRight },
-  { GCornersLeft, GCornerNone, GCornerTopRight, GCornerTopRight, GCornerNone, GCornerTopLeft, GCornerNone,
-  GCornerBottomRight, GCornerNone, GCornerNone, GCornerBottomLeft, GCornerNone, GCornersRight }
-};
-uint8_t digit4Corner[2][13] = {
-	{ GCornersTop, GCornersTop, GCornersTop, GCornerBottomLeft, GCornerNone, GCornerBottomLeft, GCornerBottomLeft,
-    GCornerNone, GCornerNone, GCornerNone, GCornersBottom, GCornersBottom, GCornersBottom },
-  { GCornersTop, GCornersTop, GCornersTop, GCornerNone, GCornerNone, GCornerBottomLeft, GCornerNone,
-  GCornerNone, GCornerNone, GCornerNone, GCornersBottom, GCornersBottom, GCornersBottom }
-};
-uint8_t digit5Corner[2][13] = {
-	{ GCornerTopLeft, GCornerNone, GCornersRight, GCornerNone, GCornerNone, GCornerBottomLeft, GCornerNone,
-    GCornerTopRight, GCornerBottomRight, GCornerBottomRight, GCornersLeft, GCornerBottomRight, GCornerBottomRight },
-  { GCornerTopLeft, GCornerNone, GCornersRight, GCornerNone, GCornerNone, GCornerBottomLeft, GCornerNone,
-  GCornerTopRight, GCornerBottomRight, GCornerNone, GCornersLeft, GCornerNone, GCornerBottomRight }
-};
-
+uint8_t digitCorners[49][13];
