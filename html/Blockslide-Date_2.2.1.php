@@ -73,8 +73,8 @@
 		$s2 = " checked";
 	}
 
-	echo '<input id="weekday1" name="weekday" value="0" data-theme="" type="radio"' . $s1 . '><label for="weekday1">On</label>';
-	echo '<input id="weekday2" name="weekday" value="1" data-theme="" type="radio"' . $s2 . '><label for="weekday2">Off</label>';
+	echo '<input id="weekday1" name="weekday" value="0" data-theme="" type="radio"' . $s1 . '><label for="weekday1">Off</label>';
+	echo '<input id="weekday2" name="weekday" value="1" data-theme="" type="radio"' . $s2 . '><label for="weekday2">On</label>';
 ?>
         </fieldset>
         </div>
@@ -146,8 +146,8 @@
 	$s = array( "", "");
 	$s[$roundcorners] = " checked";
 
-	echo '<input id="corners1" name="roundcorners" value="0" data-theme="" type="radio"' . $s[0] . '><label for="corners1"><img src="digitsNoCorners.png" width="72" height="72"><br/>Flat</label>';
-	echo '<input id="corners2" name="roundcorners" value="1" data-theme="" type="radio"' . $s[1] . '><label for="corners2"><img src="digitsCorners.png" width="72" height="72"><br/>Round</label>';
+	echo '<input id="corners1" name="roundcorners" value="0" data-theme="" type="radio"' . $s[0] . '><label for="corners1"><img src="digitsFlatCorners.png" width="72" height="72"><br/>Flat</label>';
+	echo '<input id="corners2" name="roundcorners" value="1" data-theme="" type="radio"' . $s[1] . '><label for="corners2"><img src="digitsRoundCorners.png" width="72" height="72"><br/>Round</label>';
 ?>
         </fieldset>
       </div>
