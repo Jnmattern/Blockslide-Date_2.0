@@ -15,7 +15,9 @@
     "lang":         12,
     "stripes":      13,
     "roundcorners": 14,
-    "fulldigits":   15
+    "fulldigits":   15,
+    "battery":      16,
+    "bluetooth":    17
   },
   "resources": {
     "media": [

@@ -23,7 +23,9 @@ enum {
   CONFIG_KEY_LANG = 12,
   CONFIG_KEY_STRIPES = 13,
   CONFIG_KEY_ROUNDCORNERS = 14,
-  CONFIG_KEY_FULLDIGITS = 15
+  CONFIG_KEY_FULLDIGITS = 15,
+  CONFIG_KEY_BATTERY = 16,
+  CONFIG_KEY_BLUETOOTH = 17
 };
 
 
@@ -60,6 +62,8 @@ int USDate = 1;
 int stripedDigits = 1;
 int roundCorners = 1;
 int fullDigits = 0;
+int batteryStatus = 1;
+int bluetoothStatus = 1;
 bool digitShapesChanged = false;
 
 
@@ -358,7 +362,7 @@ void handle_tap(AccelAxisType axis, int32_t direction) {
   static BatteryChargeState chargeState;
   int i, s;
 
-  if (splashEnded && !animRunning) {
+  if (batteryStatus && splashEnded && !animRunning) {
     if (animation_is_scheduled(anim)) {
       animation_unschedule(anim);
     }
@@ -395,7 +399,7 @@ void handle_bluetooth(bool connected) {
   } else {
     lastBluetoothStatus = connected;
 
-    if (splashEnded && !animRunning) {
+    if (bluetoothStatus && splashEnded && !animRunning) {
       if (animation_is_scheduled(anim)) {
         animation_unschedule(anim);
       }
@@ -575,19 +579,27 @@ void in_received_handler(DictionaryIterator *received, void *context) {
 
   Tuple *dateorder = dict_find(received, CONFIG_KEY_DATEORDER);
   Tuple *weekday = dict_find(received, CONFIG_KEY_WEEKDAY);
+  Tuple *battery = dict_find(received, CONFIG_KEY_BATTERY);
+  Tuple *bluetooth = dict_find(received, CONFIG_KEY_BLUETOOTH);
   Tuple *lang = dict_find(received, CONFIG_KEY_LANG);
   Tuple *stripes = dict_find(received, CONFIG_KEY_STRIPES);
   Tuple *corners = dict_find(received, CONFIG_KEY_ROUNDCORNERS);
   Tuple *digits = dict_find(received, CONFIG_KEY_FULLDIGITS);
 
-  if (dateorder && weekday && lang && stripes && corners && digits) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Received config (dateorder=%d, weekday=%d, lang=%d, stripes=%d, corners=%d, digits=%d)",
-            (int)dateorder->value->int32, (int)weekday->value->int32, (int)lang->value->int32,
-            (int)stripes->value->int32, (int)corners->value->int32, (int)digits->value->int32);
+  if (dateorder && weekday && battery && bluetooth && lang && stripes && corners && digits) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Received config:");
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "dateorder=%d, weekday=%d, battery=%d, BT=%d, lang=%d, stripes=%d, corners=%d, digits=%d",
+            (int)dateorder->value->int32, (int)weekday->value->int32,
+            (int)battery->value->int32, (int)bluetooth->value->int32,
+            (int)lang->value->int32, (int)stripes->value->int32,
+            (int)corners->value->int32, (int)digits->value->int32);
 
     somethingChanged |= checkAndSaveInt(&USDate, dateorder->value->int32, CONFIG_KEY_DATEORDER);
     somethingChanged |= checkAndSaveInt(&showWeekday, weekday->value->int32, CONFIG_KEY_WEEKDAY);
     somethingChanged |= checkAndSaveInt(&curLang, lang->value->int32, CONFIG_KEY_LANG);
+
+    checkAndSaveInt(&batteryStatus, battery->value->int32, CONFIG_KEY_BATTERY);
+    checkAndSaveInt(&bluetoothStatus, bluetooth->value->int32, CONFIG_KEY_BLUETOOTH);
 
     digitShapesChanged = false;
     digitShapesChanged |= checkAndSaveInt(&stripedDigits, stripes->value->int32, CONFIG_KEY_STRIPES);
@@ -623,7 +635,21 @@ void readConfig() {
     showWeekday = 0;
     persist_write_int(CONFIG_KEY_WEEKDAY, showWeekday);
   }
+  
+  if (persist_exists(CONFIG_KEY_BATTERY)) {
+    batteryStatus = persist_read_int(CONFIG_KEY_BATTERY);
+  } else {
+    batteryStatus = 1;
+    persist_write_int(CONFIG_KEY_BATTERY, batteryStatus);
+  }
 
+  if (persist_exists(CONFIG_KEY_BLUETOOTH)) {
+    bluetoothStatus = persist_read_int(CONFIG_KEY_BLUETOOTH);
+  } else {
+    bluetoothStatus = 1;
+    persist_write_int(CONFIG_KEY_BLUETOOTH, bluetoothStatus);
+  }
+  
   if (persist_exists(CONFIG_KEY_LANG)) {
     curLang = persist_read_int(CONFIG_KEY_LANG);
   } else {
@@ -653,14 +679,16 @@ void readConfig() {
   }
 
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Stored config :");
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "  dateorder=%d, weekday=%d, lang=%d, stripedDigits=%d, roundCorners=%d, fullDigits=%d",
-          USDate, showWeekday, curLang, stripedDigits, roundCorners, fullDigits);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "  dateorder=%d, weekday=%d, battery=%d, BT=%d",
+          USDate, showWeekday, batteryStatus, bluetoothStatus);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "  lang=%d, stripedDigits=%d, roundCorners=%d, fullDigits=%d",
+          curLang, stripedDigits, roundCorners, fullDigits);
 }
 
 static void app_message_init(void) {
   app_message_register_inbox_received(in_received_handler);
   app_message_register_inbox_dropped(in_dropped_handler);
-  app_message_open(128, 128);
+  app_message_open(160, 160);
 }
 
 void initDigitCorners() {

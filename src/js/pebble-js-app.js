@@ -8,6 +8,16 @@ if (!weekday) {
 	weekday = 0;
 }
 
+var battery = localStorage.getItem("battery");
+if (!battery) {
+	battery = 1;
+}
+
+var bluetooth = localStorage.getItem("bluetooth");
+if (!bluetooth) {
+	bluetooth = 1;
+}
+
 var lang = localStorage.getItem("lang");
 if (!lang) {
 	lang = 1;
@@ -32,24 +42,27 @@ Pebble.addEventListener("ready", function() {
 	console.log("Ready Event");
 	console.log("	dateorder: " + dateorder);
 	console.log("	weekday: " + weekday);
+	console.log("	battery: " + battery);
+	console.log("	bluetooth: " + bluetooth);
 	console.log("	lang: " + lang);
 	console.log("	stripes: " + stripes);
 	console.log("	roundcorners: " + roundcorners);
 	console.log("	fulldigits: " + fulldigits);
-
 	
-	Pebble.sendAppMessage(JSON.parse('{"dateorder":'+dateorder+',"weekday":'+weekday+',"lang":'+lang+',"stripes":'+stripes+',"roundcorners":'+roundcorners+',"fulldigits":'+fulldigits+'}'));
+	Pebble.sendAppMessage(JSON.parse('{"dateorder":'+dateorder+',"weekday":'+weekday+',"battery":'+battery+',"bluetooth":'+bluetooth+',"lang":'+lang+',"stripes":'+stripes+',"roundcorners":'+roundcorners+',"fulldigits":'+fulldigits+'}'));
 });
 
 Pebble.addEventListener("showConfiguration", function(e) {
 	console.log("showConfiguration Event");
 	console.log("	dateorder: " + dateorder);
 	console.log("	weekday: " + weekday);
+	console.log("	battery: " + battery);
+	console.log("	bluetooth: " + bluetooth);
 	console.log("	lang: " + lang);
 	console.log("	stripes: " + stripes);
 	console.log("	roundcorners: " + roundcorners);
 	console.log("	fulldigits: " + fulldigits);
-	Pebble.openURL("http://www.famillemattern.com/jnm/pebble/Blockslide-Date/Blockslide-Date_2.2.1.php?dateorder=" + dateorder + "&weekday=" + weekday + "&lang=" + lang + "&stripes=" + stripes + "&roundcorners=" + roundcorners + "&fulldigits=" + fulldigits);
+	Pebble.openURL("http://www.famillemattern.com/jnm/pebble/Blockslide-Date/Blockslide-Date_2.2.2.php?dateorder=" + dateorder + "&weekday=" + weekday + "&battery=" + battery + "&bluetooth=" + bluetooth + "&lang=" + lang + "&stripes=" + stripes + "&roundcorners=" + roundcorners + "&fulldigits=" + fulldigits);
 });
 
 Pebble.addEventListener("webviewclosed", function(e) {
@@ -65,6 +78,12 @@ Pebble.addEventListener("webviewclosed", function(e) {
 	
 	weekday = configuration["weekday"];
 	localStorage.setItem("weekday", weekday);
+
+	battery = configuration["battery"];
+	localStorage.setItem("battery", battery);
+	
+	bluetooth = configuration["bluetooth"];
+	localStorage.setItem("bluetooth", bluetooth);
 
 	lang = configuration["lang"];
 	localStorage.setItem("lang", lang);
